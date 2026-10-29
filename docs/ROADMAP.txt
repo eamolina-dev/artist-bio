@@ -1,0 +1,23 @@
+MVP
+
+Views
+- Artist profile
+- info/details/settings
+
+Functionalities
+- Sign up / Login
+- Private dashboard 
+- CRUD main entities (links, photos, info)
+
+V1
+
+- Color customizing 
+- Music player
+
+V2
+
+- Custom domain
+- Analytics / Stats
+
+
+

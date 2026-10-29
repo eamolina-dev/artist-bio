@@ -1,0 +1,28 @@
+Vision
+
+artist-bio will be a website when mainly musical artist will can create their own website.
+
+Goals
+
+this project has 3 main goals:
+1. Practice and improve my project builder skills. Keeping a good documentation, making designing, development, and product decisions. Also document each part of the project, each feature and all important info related with.
+2. Practice and improve my development skills, making focus in front-end features. 
+3. Get money by premium user's functionalities. 
+
+Features
+
+- sub-domain: artist-bio.site/moli 
+- Profile header + bio
+- Unlimited links
+- 1 smart embed (spotify or youtube)
+- default theme 
+
+
+- custom profile: 
+	- custom backgrounds
+	- colors selection
+	- font selection
+- artist domain: moli.site
+- analytics and stats
+
+

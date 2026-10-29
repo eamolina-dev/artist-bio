@@ -1,0 +1,13 @@
+The project will be built on the following tech stack:
+
+Frontend
+- Next.js
+- Typescript
+- Tailwind CSS
+
+Backend
+- Supabase (or Firebase)
+
+Deploy
+- Vercel 
+
