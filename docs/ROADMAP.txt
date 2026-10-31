@@ -21,3 +21,16 @@ V2
 
 
 
+====================================================
+
+1. Create data layer (mock data)
+- defining TS types and JSON file (mockProfile.ts) with a specific fake data.
+
+2. Separate UI components: divide artist-bio in several components (create components)
+- ProfileHeader.tsx (cover, avatar, bio, location)
+- SocialLinks.tsx (social icons bar)
+- ReleasePlayer.tsx (last release player)
+- ShowLists.tsx ()
+- MerchCard.tsx ()
+- CustomLinks.tsx ()
+
