@@ -2,6 +2,8 @@ import { ArrowUpRight, Mail, Video } from 'lucide-react'
 import { CustomLink } from '@/types/artist'
 
 export function CustomLinks({ links }: { links: CustomLink[] }) {
+  if (!links || links.length === 0) return null;
+  
   return (
     <div className="mt-7 flex flex-col gap-2">
       {links.map((link) => (

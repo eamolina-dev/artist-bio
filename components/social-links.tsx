@@ -10,6 +10,8 @@ const iconMap = {
 }
 
 export function SocialLinks({ socials }: { socials: SocialLink[] }) {
+  if (!socials || socials.length === 0) return null;
+  
   return (
     <div className="mt-5 flex gap-2">
       {socials.map((social) => {

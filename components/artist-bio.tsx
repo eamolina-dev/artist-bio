@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 import { ChevronDown, Plus, Sparkles } from 'lucide-react'
 import { mockArtistProfile } from '@/data/mockProfile'
 import { ProfileHeader } from './profile-header'
@@ -12,7 +13,47 @@ import { CustomLinks } from './custom-links'
 
 export function ArtistBio() {
   const [showCustomizer, setShowCustomizer] = useState(false)
-  const profile = mockArtistProfile
+  // const profile = mockArtistProfile
+  const [profile, setProfile] = useState<any>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        // Consultamos el perfil donde el handle sea 'moli'
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('handle', 'moli')
+          .single()
+
+        if (error) throw error
+        if (data) setProfile(data)
+      } catch (err) {
+        console.error('Error fetching profile:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProfile()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#121316] text-[#e9e5df] flex items-center justify-center font-mono text-sm">
+        Loading...
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-[#121316] text-[#e9e5df] flex items-center justify-center font-mono text-sm">
+        Profile not found.
+      </div>
+    )
+  }
 
   return (
     <main className="min-h-screen relative overflow-x-hidden bg-[#121316] text-[#e9e5df] antialiased selection:bg-[#e2d9cc] selection:text-[#121316]">

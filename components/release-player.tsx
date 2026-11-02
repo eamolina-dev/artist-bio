@@ -22,6 +22,8 @@ function Waveform({ isPlaying }: { isPlaying: boolean }) {
 }
 
 export function ReleasePlayer({ release }: { release: Release }) {
+  if (!release) return null;
+
   const [playing, setPlaying] = useState(false)
 
   return (

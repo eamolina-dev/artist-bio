@@ -34,3 +34,38 @@ V2
 - MerchCard.tsx ()
 - CustomLinks.tsx ()
 
+3. Design database model in Supabase 
+
+db pass: zRZFzV8UT2Xg2J88
+
+tables: profiles, social_links, releases, shows, custom_links
+
+4. Connect Next.js with Supabase
+- install supabase: npm install @supabase/supabase-js
+- config env vars: 
+---
+NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url_aqui
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key_aqui
+---
+- create supabase client: lib/supabase.ts
+---
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL! (supabase -> project setting -> data api -> api url)
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+---
+
+SUPABASE TEST USER
+- molimusic@gmail.com
+- moli1999
+
+!!!
+IMPORTANTE: AL AGREGAR AUTH -> CAMBIAR POLITICAS PARA QUE SOLO EL DUENIO DEL PERFIL PUEDA AGREGAR LINKS Y DEMAS COSAS.
+!!!
+
+5. Implement Auth with Supabase (Login / Signup)
+
+6. Integrate Stripe / MercadoPago to personalize visual themes
+
