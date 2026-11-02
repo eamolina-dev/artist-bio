@@ -1,5 +1,5 @@
 import { ArrowUpRight, Mail, Video } from 'lucide-react'
-import { CustomLink } from '@/types/artist'
+import { CustomLink } from '@/types/custom-types'
 
 export function CustomLinks({ links }: { links: CustomLink[] }) {
   if (!links || links.length === 0) return null;

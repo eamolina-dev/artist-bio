@@ -2,53 +2,69 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { Database } from '@/types/supabase'
+import { ProfileForm } from '@/components/admin/ProfileForm'
+import { ReleasesManager } from '@/components/admin/ReleasesManager'
+import { LinksManager } from '@/components/admin/LinksManager'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'releases' | 'links'>('profile')
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
 
-  // Estados de formularios
+  // Estados Perfil
   const [name, setName] = useState('')
   const [tagline, setTagline] = useState('')
   const [location, setLocation] = useState('')
 
+  // Estados Releases
   const [releaseTitle, setReleaseTitle] = useState('')
   const [releaseType, setReleaseType] = useState('Single')
-  // const [releaseYear, setReleaseYear] = useState(new Date().getFullYear().toString())
-  const [releaseYear, setReleaseYear] = useState('2026') // Valor por defecto a 2026 para evitar errores de validación
+  const [releaseYear, setReleaseYear] = useState('2026')
   const [spotifyUrl, setSpotifyUrl] = useState('')
+  const [releases, setReleases] = useState<Database['public']['Tables']['releases']['Row'][]>([])
 
+  // Estados Links
   const [linkTitle, setLinkTitle] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
+  const [customLinks, setCustomLinks] = useState<Database['public']['Tables']['custom_links']['Row'][]>([])
 
-  // Cargar datos actuales
-  useEffect(() => {
-    async function loadAdminData() {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('handle', 'moli')
-          .single()
+  async function loadAdminData() {
+    setLoading(true)
+    const { data: profileData } = await supabase.from('profiles').select('*').single()
+    if (profileData) {
+      setProfile(profileData)
+      setName(profileData.name || '')
+      setTagline(profileData.tagline || '')
+      setLocation(profileData.location || '')
 
-        if (error) throw error
-        if (data) {
-          setProfile(data)
-          setName(data.name || '')
-          setTagline(data.tagline || '')
-          setLocation(data.location || '')
-        }
-      } catch (err) {
-        console.error('Error cargando perfil:', err)
-      } finally {
-        setLoading(false)
-      }
+      const { data: releasesData } = await supabase
+        .from('releases')
+        .select('*')
+        .eq('profile_id', profileData.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+
+      if (releasesData) setReleases(releasesData)
+
+      const { data: linksData } = await supabase
+        .from('custom_links')
+        .select('*')
+        .eq('profile_id', profileData.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+
+      console.log('Links Data:', linksData) // Agrega este log para depuración
+
+      if (linksData) setCustomLinks(linksData)
     }
+    setLoading(false)
+  }
+
+  useEffect(() => {
     loadAdminData()
   }, [])
 
-  // Guardar Cambios de Perfil
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault()
     try {
@@ -56,12 +72,92 @@ export default function AdminPage() {
         .from('profiles')
         .update({ name, tagline, location })
         .eq('handle', 'moli')
-
       if (error) throw error
       alert('¡Perfil actualizado!')
     } catch (err) {
-      console.error('Error al actualizar:', err)
+      console.error(err)
       alert('Error guardando cambios')
+    }
+  }
+
+  async function handleAddRelease(e: React.FormEvent) {
+    e.preventDefault()
+    if (!releaseTitle) return alert('El título es obligatorio')
+
+    try {
+      const { error } = await supabase.from('releases').insert([
+        {
+          profile_id: profile.id,
+          title: releaseTitle,
+          type: releaseType,
+          year: releaseYear,
+          spotify_url: spotifyUrl,
+          is_featured: true,
+        },
+      ])
+      if (error) throw error
+      alert('¡Release agregado!')
+      setReleaseTitle('')
+      setSpotifyUrl('')
+      loadAdminData()
+    } catch (err) {
+      console.error(err)
+      alert('Error al agregar release')
+    }
+  }
+
+  async function handleDeleteRelease(id: string) {
+    if (!confirm('¿Ocultar este release?')) return
+
+    const { error } = await supabase
+      .from('releases')
+      .update({ is_active: false })
+      .eq('id', id)
+
+    if (error) {
+      console.error(error)
+      alert('Error al ocultar el release')
+    } else {
+      setReleases(releases.filter((r) => r.id !== id))
+    }
+  }
+
+  async function handleAddLink(e: React.FormEvent) {
+    e.preventDefault()
+    if (!linkTitle || !linkUrl) return alert('Título y URL requeridos')
+
+    try {
+      const { error } = await supabase.from('custom_links').insert([
+        {
+          profile_id: profile.id,
+          label: linkTitle,
+          url: linkUrl,
+        },
+      ])
+      if (error) throw error
+      alert('¡Link creado!')
+      setLinkTitle('')
+      setLinkUrl('')
+      loadAdminData()
+    } catch (err) {
+      console.error(err)
+      alert('Error al agregar link')
+    }
+  }
+
+  async function handleDeleteLink(id: string) {
+    if (!confirm('¿Ocultar este link?')) return
+
+    const { error } = await supabase
+      .from('custom_links')
+      .update({ is_active: false })
+      .eq('id', id)
+
+    if (error) {
+      console.error(error)
+      alert('Error al ocultar el link')
+    } else {
+      setCustomLinks(customLinks.filter((l) => l.id !== id))
     }
   }
 
@@ -71,60 +167,6 @@ export default function AdminPage() {
         Cargando Panel Admin...
       </div>
     )
-  }
-
-  async function handleAddRelease(e: React.FormEvent) {
-    e.preventDefault()
-    if (!releaseTitle) return alert('El título es obligatorio')
-
-    try {
-      const { error } = await supabase
-        .from('releases')
-        .insert([
-          {
-            profile_id: profile.id,
-            title: releaseTitle,
-            type: releaseType,
-            year: releaseYear,
-            spotify_url: spotifyUrl,
-            is_featured: true,
-          },
-        ])
-
-      if (error) throw error
-      alert('¡Release agregado con éxito!')
-      setReleaseTitle('')
-      setSpotifyUrl('')
-    } catch (err) {
-      console.error('Error al guardar release:', err)
-      alert('Error al agregar el release')
-    }
-  }
-
-  async function handleAddLink(e: React.FormEvent) {
-    e.preventDefault()
-    if (!linkTitle || !linkUrl) return alert('Título y URL son requeridos')
-
-    try {
-      const { error } = await supabase
-        .from('custom_links')
-        .insert([
-          {
-            profile_id: profile.id,
-            title: linkTitle,
-            url: linkUrl,
-            is_active: true,
-          },
-        ])
-
-      if (error) throw error
-      alert('¡Link creado!')
-      setLinkTitle('')
-      setLinkUrl('')
-    } catch (err) {
-      console.error('Error al agregar link:', err)
-      alert('Error al agregar link')
-    }
   }
 
   return (
@@ -154,152 +196,54 @@ export default function AdminPage() {
           onClick={() => setActiveTab('releases')}
           className={`px-3 py-1.5 rounded ${activeTab === 'releases' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
         >
-          [ Releases ]
+          [ Releases ({releases.length}) ]
         </button>
         <button
           onClick={() => setActiveTab('links')}
           className={`px-3 py-1.5 rounded ${activeTab === 'links' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
         >
-          [ Links ]
+          [ Links ({customLinks.length}) ]
         </button>
       </div>
 
-      {/* Formulario Perfil */}
       {activeTab === 'profile' && (
-        <form onSubmit={handleSaveProfile} className="space-y-4 font-mono text-sm">
-          <div>
-            <label className="block text-xs text-[#a0a0a0] mb-1">Nombre de Artista</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-[#1a1b1f] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-[#a0a0a0] mb-1">Tagline / Subtítulo</label>
-            <input
-              type="text"
-              value={tagline}
-              onChange={(e) => setTagline(e.target.value)}
-              className="w-full bg-[#1a1b1f] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-[#a0a0a0] mb-1">Ubicación</label>
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full bg-[#1a1b1f] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-white text-black font-bold py-2.5 rounded mt-4 hover:bg-[#d0d0d0] transition"
-          >
-            Guardar Cambios
-          </button>
-        </form>
+        <ProfileForm
+          name={name}
+          setName={setName}
+          tagline={tagline}
+          setTagline={setTagline}
+          location={location}
+          setLocation={setLocation}
+          onSubmit={handleSaveProfile}
+        />
       )}
 
       {activeTab === 'releases' && (
-        <form onSubmit={handleAddRelease} className="space-y-4 font-mono text-sm">
-          <h2 className="text-xs text-[#a0a0a0] font-bold uppercase tracking-wider mb-2">Agregar Nuevo Release</h2>
-
-          <div>
-            <label className="block text-xs text-[#a0a0a0] mb-1">Título del Track / EP</label>
-            <input
-              type="text"
-              placeholder="ej. Horizon Line"
-              value={releaseTitle}
-              onChange={(e) => setReleaseTitle(e.target.value)}
-              className="w-full bg-[#1a1b1f] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-[#a0a0a0] mb-1">Tipo</label>
-              <select
-                value={releaseType}
-                onChange={(e) => setReleaseType(e.target.value)}
-                className="w-full bg-[#1a1b1f] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
-              >
-                <option value="Single">Single</option>
-                <option value="EP">EP</option>
-                <option value="Album">Album</option>
-                <option value="Remix">Remix</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs text-[#a0a0a0] mb-1">Año</label>
-              <input
-                type="text"
-                value={releaseYear}
-                onChange={(e) => setReleaseYear(e.target.value)}
-                className="w-full bg-[#1a1b1f] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs text-[#a0a0a0] mb-1">Link de Spotify / Soundcloud</label>
-            <input
-              type="url"
-              placeholder="https://open.spotify.com/track/..."
-              value={spotifyUrl}
-              onChange={(e) => setSpotifyUrl(e.target.value)}
-              className="w-full bg-[#1a1b1f] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-white text-black font-bold py-2.5 rounded mt-4 hover:bg-[#d0d0d0] transition"
-          >
-            Agregar Release
-          </button>
-        </form>
+        <ReleasesManager
+          releaseTitle={releaseTitle}
+          setReleaseTitle={setReleaseTitle}
+          releaseType={releaseType}
+          setReleaseType={setReleaseType}
+          releaseYear={releaseYear}
+          setReleaseYear={setReleaseYear}
+          spotifyUrl={spotifyUrl}
+          setSpotifyUrl={setSpotifyUrl}
+          releases={releases}
+          onSubmit={handleAddRelease}
+          onDelete={handleDeleteRelease}
+        />
       )}
 
       {activeTab === 'links' && (
-        <form onSubmit={handleAddLink} className="space-y-4 font-mono text-sm">
-          <h2 className="text-xs text-[#a0a0a0] font-bold uppercase tracking-wider mb-2">Agregar Link Personalizado</h2>
-
-          <div>
-            <label className="block text-xs text-[#a0a0a0] mb-1">Etiqueta del Botón</label>
-            <input
-              type="text"
-              placeholder="ej. Presave Nuevo Single"
-              value={linkTitle}
-              onChange={(e) => setLinkTitle(e.target.value)}
-              className="w-full bg-[#1a1b1f] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-[#a0a0a0] mb-1">URL de Destino</label>
-            <input
-              type="url"
-              placeholder="https://..."
-              value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
-              className="w-full bg-[#1a1b1f] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-white text-black font-bold py-2.5 rounded mt-4 hover:bg-[#d0d0d0] transition"
-          >
-            Agregar Link
-          </button>
-        </form>
+        <LinksManager
+          linkTitle={linkTitle}
+          setLinkTitle={setLinkTitle}
+          linkUrl={linkUrl}
+          setLinkUrl={setLinkUrl}
+          customLinks={customLinks}
+          onSubmit={handleAddLink}
+          onDelete={handleDeleteLink}
+        />
       )}
     </main>
   )

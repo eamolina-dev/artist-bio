@@ -1,5 +1,5 @@
 import { Disc3, ShoppingBag } from 'lucide-react'
-import { MerchItem } from '@/types/artist'
+import { MerchItem } from '@/types/custom-types'
 
 export function MerchCard({ merch }: { merch?: MerchItem }) {
   if (!merch) return null

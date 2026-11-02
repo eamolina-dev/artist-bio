@@ -1,5 +1,5 @@
 import { Apple, Camera, Disc3, Music2, Video } from 'lucide-react'
-import { SocialLink } from '@/types/artist'
+import { SocialLink } from '@/types/custom-types'
 
 const iconMap = {
   spotify: Music2,

@@ -1,4 +1,4 @@
-import { Show } from '@/types/artist'
+import { Show } from '@/types/custom-types'
 
 export function ShowsList({ shows }: { shows: Show[] }) {
   if (!shows || shows.length === 0) return null

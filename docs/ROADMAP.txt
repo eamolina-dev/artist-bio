@@ -65,6 +65,12 @@ SUPABASE TEST USER
 IMPORTANTE: AL AGREGAR AUTH -> CAMBIAR POLITICAS PARA QUE SOLO EL DUENIO DEL PERFIL PUEDA AGREGAR LINKS Y DEMAS COSAS.
 !!!
 
+generar tipos con supabase: 
+npx supabase gen types typescript --project-id <project-id> > types/supabase.ts
+
+*** antes de generar los tipos debemos setear el access token en el env, lo hacemos de esta forma en la terminal:
+$env:SUPABASE_ACCESS_TOKEN="<access-token>"
+
 5. Implement Auth with Supabase (Login / Signup)
 
 6. Integrate Stripe / MercadoPago to personalize visual themes

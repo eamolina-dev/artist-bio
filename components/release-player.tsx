@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Apple, Music2, Play } from 'lucide-react'
-import { Release } from '@/types/artist'
+import { Release } from '@/types/custom-types'
 
 function Waveform({ isPlaying }: { isPlaying: boolean }) {
   const bars = [12, 20, 28, 16, 34, 24, 39, 20, 30, 44, 26, 17, 32, 24, 38, 18, 27, 42, 24, 14, 29, 36, 21, 31, 17, 25, 40, 20, 30, 18, 34, 22, 28, 16, 38, 26, 19, 30, 22, 15]
@@ -69,9 +69,9 @@ export function ReleasePlayer({ release }: { release: Release }) {
         </div>
 
         <div className="mt-3 flex gap-2">
-          {release.spotifyUrl && (
+          {release.spotify_url && (
             <a
-              href={release.spotifyUrl}
+              href={release.spotify_url}
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 py-2 text-[11px] text-[#b3bac0] transition hover:border-white/25 hover:text-white"
@@ -79,9 +79,9 @@ export function ReleasePlayer({ release }: { release: Release }) {
               <Music2 className="size-3.5" /> Spotify
             </a>
           )}
-          {release.appleUrl && (
+          {release.apple_url && (
             <a
-              href={release.appleUrl}
+              href={release.apple_url}
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 py-2 text-[11px] text-[#b3bac0] transition hover:border-white/25 hover:text-white"

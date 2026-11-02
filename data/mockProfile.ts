@@ -1,4 +1,4 @@
-import { ArtistProfile } from '@/types/artist';
+import { ArtistProfile } from '@/types/custom-types';
 
 export const mockArtistProfile: ArtistProfile = {
   id: 'artist-1',
