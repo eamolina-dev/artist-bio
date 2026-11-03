@@ -1,7 +1,7 @@
 import { Apple, Camera, Disc3, Music2, Video } from 'lucide-react'
-import { SocialLink } from '@/types/custom-types'
+import { Social } from '@/types/custom-types'
 
-const iconMap = {
+const iconMap: Record<string, typeof Music2> = {
   spotify: Music2,
   apple: Apple,
   youtube: Video,
@@ -9,16 +9,17 @@ const iconMap = {
   soundcloud: Disc3,
 }
 
-export function SocialLinks({ socials }: { socials: SocialLink[] }) {
-  if (!socials || socials.length === 0) return null;
-  
+export function Socials({ socials }: { socials: Social[] }) {
+  if (!socials || socials.length === 0) return null
+
   return (
     <div className="mt-5 flex gap-2">
       {socials.map((social) => {
-        const IconComponent = iconMap[social.platform] || Music2
+        const IconComponent = iconMap[social.platform.toLowerCase()] || Music2
+
         return (
           <a
-            key={social.platform}
+            key={social.id || social.platform}
             href={social.url}
             target="_blank"
             rel="noopener noreferrer"

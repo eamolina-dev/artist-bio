@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/types/supabase'
 import { ProfileHeader } from './profile-header'
-import { SocialLinks } from './social-links'
+import { Socials } from './socials'
 import { ReleasePlayer } from './release-player'
 import { ShowsList } from './shows-list'
 import { MerchCard } from './merch-card'
@@ -32,7 +32,7 @@ export function ArtistBio() {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('handle', 'moli')
+          .eq('slug', 'moli')
           .single()
 
         if (profileError) throw profileError
@@ -112,7 +112,7 @@ export function ArtistBio() {
           />
 
           <div className="relative px-5 pb-10 sm:px-8">
-            <SocialLinks socials={[]} />
+            <Socials socials={[]} />
             
             <div className="mt-8 space-y-8">
               {/* Le pasamos el release real traído de Supabase */}

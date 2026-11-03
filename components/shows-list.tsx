@@ -30,7 +30,7 @@ export function ShowsList({ shows }: { shows: Show[] }) {
               <p className="mt-0.5 text-[11px] text-[#8b939b]">{show.city}</p>
             </div>
             <a
-              href={show.ticketUrl || '#'}
+              href={show.ticket_url || '#'}
               className={`rounded-full border px-2.5 py-1 text-[10px] ${
                 show.status === 'Sold out'
                   ? 'border-white/10 text-[#727b84]'

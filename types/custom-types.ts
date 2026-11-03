@@ -1,30 +1,17 @@
 import { Database } from '@/types/supabase'
 
-// 1. Alias directos de la Base de Datos (SSOT)
+// Aliases directos de las tablas en Supabase (SSOT)
 export type Profile = Database['public']['Tables']['profiles']['Row']
 export type Release = Database['public']['Tables']['releases']['Row']
 export type CustomLink = Database['public']['Tables']['custom_links']['Row']
+export type Show = Database['public']['Tables']['shows']['Row']
+export type Social = Database['public']['Tables']['socials']['Row']
+export type Merch = Database['public']['Tables']['merch']['Row']
 
-// 2. Interfaces exclusivas de UI (que aún no tienen tabla en Supabase)
-export interface Show {
-  id: string
-  date: string
-  month: string
-  venue: string
-  city: string
-  status: 'Tickets' | 'Sold out' | 'Free'
-  ticket_url?: string | null
-}
-
-export interface MerchItem {
-  title: string
-  subtitle: string
-  price: string
-  image_url?: string | null
-  buy_url?: string | null
-}
-
-export interface SocialLink {
-  platform: 'spotify' | 'apple' | 'youtube' | 'instagram' | 'soundcloud'
-  url: string
-}
+// Aliases opcionales para Inserts (útil para los formularios del Admin)
+export type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
+export type ReleaseInsert = Database['public']['Tables']['releases']['Insert']
+export type CustomLinkInsert = Database['public']['Tables']['custom_links']['Insert']
+export type ShowInsert = Database['public']['Tables']['shows']['Insert']
+export type SocialInsert = Database['public']['Tables']['socials']['Insert']
+export type MerchInsert = Database['public']['Tables']['merch']['Insert']
