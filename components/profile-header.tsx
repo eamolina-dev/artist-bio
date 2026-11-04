@@ -5,8 +5,9 @@ interface ProfileHeaderProps {
   tagline: string
   location: string
   isVerified: boolean
-  coverUrl: string
-  avatarInitials: string
+  coverUrl?: string | null
+  avatarUrl?: string | null     // <-- Agregamos la URL del avatar
+  avatarInitials: string       // <-- Mantenemos las iniciales como fallback
   onToggleCustomizer?: () => void
 }
 
@@ -16,17 +17,23 @@ export function ProfileHeader({
   location,
   isVerified,
   coverUrl,
+  avatarUrl,
   avatarInitials,
   onToggleCustomizer,
 }: ProfileHeaderProps) {
   return (
     <>
       <div className="relative h-[205px] overflow-hidden">
-        <img
-          src={coverUrl}
-          alt={`${name} performing`}
-          className="h-full w-full object-cover object-center opacity-85"
-        />
+        {coverUrl ? (
+          <img
+            src={coverUrl}
+            alt={`${name} cover`}
+            className="h-full w-full object-cover object-center opacity-85"
+          />
+        ) : (
+          <div className="h-full w-full bg-neutral-900" />
+        )}
+        
         <div className="absolute inset-0 bg-gradient-to-b from-[#121316]/15 via-transparent to-[#181b20]" />
         
         <div className="absolute left-5 top-5 flex items-center gap-2 rounded-full border border-white/15 bg-[#121316]/35 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-[#d5d0c8] backdrop-blur-md">
@@ -46,9 +53,15 @@ export function ProfileHeader({
 
       <div className="px-5">
         <div className="flex items-end justify-between">
-          <div className="flex size-[76px] items-center justify-center rounded-full border-4 border-[#181b20] bg-[#b8a38c] text-2xl font-semibold tracking-[-0.08em] text-[#27211c]">
-            {avatarInitials}
+          {/* Avatar con fallback dinámico a iniciales */}
+          <div className="flex size-[76px] items-center justify-center rounded-full border-4 border-[#181b20] bg-[#b8a38c] text-2xl font-semibold tracking-[-0.08em] text-[#27211c] overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
+            ) : (
+              <span>{avatarInitials}</span>
+            )}
           </div>
+
           {isVerified && (
             <span className="mb-2 flex items-center gap-1.5 rounded-full border border-[#e2d9cc]/20 bg-[#e2d9cc]/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-[#e2d9cc]">
               <Check className="size-3" /> Verified

@@ -6,22 +6,20 @@ import { Database } from '@/types/supabase'
 import { ProfileForm } from '@/components/admin/ProfileForm'
 import { ReleasesManager } from '@/components/admin/ReleasesManager'
 import { LinksManager } from '@/components/admin/LinksManager'
+import { SocialsManager } from '@/components/admin/SocialsManager'
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'profile' | 'releases' | 'links'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'releases' | 'links' | 'socials'>('profile')
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
 
-  // Estados Perfil
-  const [name, setName] = useState('')
-  const [tagline, setTagline] = useState('')
-  const [location, setLocation] = useState('')
-
   // Estados Releases
   const [releaseTitle, setReleaseTitle] = useState('')
-  const [releaseType, setReleaseType] = useState('Single')
+  const [releaseType, setReleaseType] = useState('single')
   const [releaseYear, setReleaseYear] = useState('2026')
   const [spotifyUrl, setSpotifyUrl] = useState('')
+  const [appleUrl, setAppleUrl] = useState('')
+  const [coverUrl, setCoverUrl] = useState('')
   const [releases, setReleases] = useState<Database['public']['Tables']['releases']['Row'][]>([])
 
   // Estados Links
@@ -29,15 +27,18 @@ export default function AdminPage() {
   const [linkUrl, setLinkUrl] = useState('')
   const [customLinks, setCustomLinks] = useState<Database['public']['Tables']['custom_links']['Row'][]>([])
 
+  // Estados Socials
+  const [platform, setPlatform] = useState('spotify')
+  const [socialUrl, setSocialUrl] = useState('')
+  const [socials, setSocials] = useState<Database['public']['Tables']['socials']['Row'][]>([])
+
   async function loadAdminData() {
     setLoading(true)
     const { data: profileData } = await supabase.from('profiles').select('*').single()
     if (profileData) {
       setProfile(profileData)
-      setName(profileData.name || '')
-      setTagline(profileData.tagline || '')
-      setLocation(profileData.location || '')
 
+      // Cargar Releases
       const { data: releasesData } = await supabase
         .from('releases')
         .select('*')
@@ -47,6 +48,7 @@ export default function AdminPage() {
 
       if (releasesData) setReleases(releasesData)
 
+      // Cargar Custom Links
       const { data: linksData } = await supabase
         .from('custom_links')
         .select('*')
@@ -54,9 +56,16 @@ export default function AdminPage() {
         .eq('is_active', true)
         .order('created_at', { ascending: false })
 
-      console.log('Links Data:', linksData) // Agrega este log para depuración
-
       if (linksData) setCustomLinks(linksData)
+
+      // Cargar Socials
+      const { data: socialsData } = await supabase
+        .from('socials')
+        .select('*')
+        .eq('profile_id', profileData.id)
+        .order('order_index', { ascending: true })
+
+      if (socialsData) setSocials(socialsData)
     }
     setLoading(false)
   }
@@ -65,21 +74,7 @@ export default function AdminPage() {
     loadAdminData()
   }, [])
 
-  async function handleSaveProfile(e: React.FormEvent) {
-    e.preventDefault()
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ name, tagline, location })
-        .eq('handle', 'moli')
-      if (error) throw error
-      alert('¡Perfil actualizado!')
-    } catch (err) {
-      console.error(err)
-      alert('Error guardando cambios')
-    }
-  }
-
+  // --- Handlers Releases ---
   async function handleAddRelease(e: React.FormEvent) {
     e.preventDefault()
     if (!releaseTitle) return alert('El título es obligatorio')
@@ -92,6 +87,8 @@ export default function AdminPage() {
           type: releaseType,
           year: releaseYear,
           spotify_url: spotifyUrl,
+          apple_url: appleUrl,
+          cover_url: coverUrl,
           is_featured: true,
         },
       ])
@@ -99,6 +96,8 @@ export default function AdminPage() {
       alert('¡Release agregado!')
       setReleaseTitle('')
       setSpotifyUrl('')
+      setAppleUrl('')
+      setCoverUrl('')
       loadAdminData()
     } catch (err) {
       console.error(err)
@@ -122,6 +121,7 @@ export default function AdminPage() {
     }
   }
 
+  // --- Handlers Links ---
   async function handleAddLink(e: React.FormEvent) {
     e.preventDefault()
     if (!linkTitle || !linkUrl) return alert('Título y URL requeridos')
@@ -146,18 +146,58 @@ export default function AdminPage() {
   }
 
   async function handleDeleteLink(id: string) {
-    if (!confirm('¿Ocultar este link?')) return
+    if (!confirm('¿Eliminar este link?')) return
 
     const { error } = await supabase
       .from('custom_links')
-      .update({ is_active: false })
+      .delete()
       .eq('id', id)
 
     if (error) {
       console.error(error)
-      alert('Error al ocultar el link')
+      alert('Error al eliminar el link')
     } else {
       setCustomLinks(customLinks.filter((l) => l.id !== id))
+    }
+  }
+
+  // --- Handlers Socials ---
+  async function handleAddSocial(e: React.FormEvent) {
+    e.preventDefault()
+    if (!socialUrl) return alert('La URL de la red social es requerida')
+
+    try {
+      const { error } = await supabase.from('socials').insert([
+        {
+          profile_id: profile.id,
+          platform: platform,
+          url: socialUrl,
+          order_index: socials.length + 1,
+        },
+      ])
+      if (error) throw error
+      alert('¡Red social agregada!')
+      setSocialUrl('')
+      loadAdminData()
+    } catch (err) {
+      console.error(err)
+      alert('Error al agregar red social')
+    }
+  }
+
+  async function handleDeleteSocial(id: string) {
+    if (!confirm('¿Eliminar esta red social?')) return
+
+    const { error } = await supabase
+      .from('socials')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error(error)
+      alert('Error al eliminar la red social')
+    } else {
+      setSocials(socials.filter((s) => s.id !== id))
     }
   }
 
@@ -174,7 +214,7 @@ export default function AdminPage() {
       <header className="flex items-center justify-between border-b border-[#2a2d34] pb-4 mb-8">
         <div>
           <h1 className="text-xl font-bold font-mono">ADMIN PANEL</h1>
-          <p className="text-xs text-[#a0a0a0] font-mono">Gestión de contenido para @{profile?.handle}</p>
+          <p className="text-xs text-[#a0a0a0] font-mono">Gestión de contenido para @{profile?.slug}</p>
         </div>
         <a
           href="/"
@@ -185,36 +225,50 @@ export default function AdminPage() {
       </header>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-8 font-mono text-xs border-b border-[#2a2d34] pb-2">
+      <div className="flex gap-2 mb-8 font-mono text-xs border-b border-[#2a2d34] pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('profile')}
-          className={`px-3 py-1.5 rounded ${activeTab === 'profile' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
+          className={`px-3 py-1.5 rounded cursor-pointer ${activeTab === 'profile' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
         >
           [ Perfil ]
         </button>
         <button
           onClick={() => setActiveTab('releases')}
-          className={`px-3 py-1.5 rounded ${activeTab === 'releases' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
+          className={`px-3 py-1.5 rounded cursor-pointer ${activeTab === 'releases' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
         >
           [ Releases ({releases.length}) ]
         </button>
         <button
           onClick={() => setActiveTab('links')}
-          className={`px-3 py-1.5 rounded ${activeTab === 'links' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
+          className={`px-3 py-1.5 rounded cursor-pointer ${activeTab === 'links' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
         >
           [ Links ({customLinks.length}) ]
+        </button>
+        <button
+          onClick={() => setActiveTab('socials')}
+          className={`px-3 py-1.5 rounded cursor-pointer ${activeTab === 'socials' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
+        >
+          [ Redes ({socials.length}) ]
         </button>
       </div>
 
       {activeTab === 'profile' && (
         <ProfileForm
-          name={name}
-          setName={setName}
-          tagline={tagline}
-          setTagline={setTagline}
-          location={location}
-          setLocation={setLocation}
-          onSubmit={handleSaveProfile}
+          profile={profile}
+          onSave={async (updatedFields) => {
+            try {
+              const { error } = await supabase
+                .from('profiles')
+                .update(updatedFields)
+                .eq('id', profile.id)
+              if (error) throw error
+              alert('¡Perfil actualizado!')
+              loadAdminData()
+            } catch (err) {
+              console.error(err)
+              alert('Error guardando cambios')
+            }
+          }}
         />
       )}
 
@@ -228,6 +282,10 @@ export default function AdminPage() {
           setReleaseYear={setReleaseYear}
           spotifyUrl={spotifyUrl}
           setSpotifyUrl={setSpotifyUrl}
+          appleUrl={appleUrl}
+          setAppleUrl={setAppleUrl}
+          coverUrl={coverUrl}
+          setCoverUrl={setCoverUrl}
           releases={releases}
           onSubmit={handleAddRelease}
           onDelete={handleDeleteRelease}
@@ -243,6 +301,18 @@ export default function AdminPage() {
           customLinks={customLinks}
           onSubmit={handleAddLink}
           onDelete={handleDeleteLink}
+        />
+      )}
+
+      {activeTab === 'socials' && (
+        <SocialsManager
+          platform={platform}
+          setPlatform={setPlatform}
+          socialUrl={socialUrl}
+          setSocialUrl={setSocialUrl}
+          socials={socials}
+          onSubmit={handleAddSocial}
+          onDelete={handleDeleteSocial}
         />
       )}
     </main>

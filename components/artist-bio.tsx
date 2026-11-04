@@ -13,6 +13,7 @@ import { CustomLinks } from './custom-links'
 type Profile = Database['public']['Tables']['profiles']['Row']
 type Release = Database['public']['Tables']['releases']['Row']
 type CustomLink = Database['public']['Tables']['custom_links']['Row']
+type Social = Database['public']['Tables']['socials']['Row']
 
 export function ArtistBio() {
   const [showCustomizer, setShowCustomizer] = useState(false)
@@ -22,6 +23,7 @@ export function ArtistBio() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [releases, setReleases] = useState<Release[]>([])
   const [customLinks, setCustomLinks] = useState<CustomLink[]>([])
+  const [socials, setSocials] = useState<Social[]>([])
 
   useEffect(() => {
     async function fetchPublicData() {
@@ -59,6 +61,15 @@ export function ArtistBio() {
             .order('created_at', { ascending: false })
 
           if (linksData) setCustomLinks(linksData)
+
+          // 4. Cargar redes sociales de la DB
+          const { data: socialsData } = await supabase
+            .from('socials')
+            .select('*')
+            .eq('profile_id', profileData.id)
+            .order('order_index', { ascending: true })
+
+          if (socialsData) setSocials(socialsData)
         }
       } catch (err) {
         console.error('Error fetching artist bio data:', err)
@@ -105,14 +116,15 @@ export function ArtistBio() {
             name={profile.name}
             tagline={profile.tagline || ''}
             location={profile.location || ''}
-            isVerified={true}
-            coverUrl={''}
+            isVerified={profile.is_verified || false}
+            coverUrl={profile.cover_url}
+            avatarUrl={profile.avatar_url}
             avatarInitials="MO"
             onToggleCustomizer={() => setShowCustomizer(!showCustomizer)}
           />
 
           <div className="relative px-5 pb-10 sm:px-8">
-            <Socials socials={[]} />
+            <Socials socials={socials} />       {/* <-- Conectado a Supabase */}
             
             <div className="mt-8 space-y-8">
               {/* Le pasamos el release real traído de Supabase */}

@@ -1,5 +1,7 @@
 import { ArtistBio } from '@/components/artist-bio' // o donde tengas ubicado el componente
 
-export default function HomePage() {
+export const instant = false
+
+export default async function HomePage() {
   return <ArtistBio />
 }
