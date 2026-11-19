@@ -1,28 +1,54 @@
-import { Disc3, ShoppingBag } from 'lucide-react'
-import { Merch } from '@/types/custom-types'
+'use client'
 
-export function MerchCard({ merch }: { merch?: Merch }) {
-  if (!merch) return null
+import { ShoppingBag, ExternalLink } from 'lucide-react'
+import { Database } from '@/types/supabase'
+
+type MerchRow = Database['public']['Tables']['merch']['Row']
+
+interface MerchCardProps {
+  merch?: MerchRow | null
+}
+
+export function MerchCard({ merch }: MerchCardProps) {
+  if (!merch) {
+    return null
+  }
 
   return (
-    <div className="mt-7">
-      <h2 className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#737c85]">Shop</h2>
-      <div className="mt-3 flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-[#20242a] p-3">
-        <div className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-[#756b62] shadow-inner">
-          <Disc3 className="size-9 text-[#d9d0c4]" />
-        </div>
+    <div className="rounded-2xl border border-white/[0.08] bg-[#121316]/60 p-4 flex flex-col justify-between gap-4">
+      <div className="flex items-center gap-3">
+        {merch.image_url ? (
+          <img
+            src={merch.image_url}
+            alt={merch.title}
+            className="size-14 rounded-xl object-cover border border-white/10"
+          />
+        ) : (
+          <div className="flex size-14 items-center justify-center rounded-xl bg-white/5 text-[#9299a1]">
+            <ShoppingBag className="size-5" />
+          </div>
+        )}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">{merch.title}</p>
-          <p className="mt-1 text-xs text-[#8d969e]">{merch.subtitle}</p>
-          <p className="mt-2 text-sm text-[#e2d9cc]">{merch.price}</p>
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#9299a1]">
+            Merch
+          </p>
+          <h3 className="truncate text-sm font-medium text-[#e9e5df]">
+            {merch.title}
+          </h3>
+          <p className="text-xs font-mono text-[#e2d9cc]">{merch.price}</p>
         </div>
-        <a
-          href={merch.buyUrl || '#'}
-          className="flex items-center gap-1.5 rounded-lg bg-[#e2d9cc] px-3 py-2 text-[11px] font-medium text-[#24201d] transition hover:bg-white"
-        >
-          <ShoppingBag className="size-3.5" /> Buy
-        </a>
       </div>
+
+      {merch.buy_url && (
+        <a
+          href={merch.buy_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-mono text-[#e9e5df] hover:bg-white/10 transition"
+        >
+          Ver producto <ExternalLink className="size-3" />
+        </a>
+      )}
     </div>
   )
 }
