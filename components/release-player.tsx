@@ -1,96 +1,92 @@
 'use client'
 
-import { useState } from 'react'
-import { Apple, Music2, Play } from 'lucide-react'
-import { Release } from '@/types/custom-types'
+import { ExternalLink, Disc3 } from 'lucide-react'
+import { Database } from '@/types/supabase'
 
-function Waveform({ isPlaying }: { isPlaying: boolean }) {
-  const bars = [12, 20, 28, 16, 34, 24, 39, 20, 30, 44, 26, 17, 32, 24, 38, 18, 27, 42, 24, 14, 29, 36, 21, 31, 17, 25, 40, 20, 30, 18, 34, 22, 28, 16, 38, 26, 19, 30, 22, 15]
-  return (
-    <div className="flex h-10 items-center gap-[3px]" aria-label="Audio waveform visualization">
-      {bars.map((height, index) => (
-        <span
-          key={index}
-          className={`w-[3px] rounded-full transition-colors duration-300 ${
-            isPlaying && index < 13 ? 'bg-[#e2d9cc]' : 'bg-[#6c737b]'
-          }`}
-          style={{ height }}
-        />
-      ))}
-    </div>
-  )
+type Release = Database['public']['Tables']['releases']['Row']
+
+interface ReleasePlayerProps {
+  release: Release
 }
 
-export function ReleasePlayer({ release }: { release: Release }) {
-  if (!release) return null;
+function getSpotifyEmbedUrl(url: string | null): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    if (parsed.hostname.includes('spotify.com')) {
+      // Convierte /track/ID, /album/ID o /playlist/ID en /embed/...
+      const cleanPath = parsed.pathname.replace(/^\/intl-[a-z]{2}\//, '/')
+      if (cleanPath.startsWith('/embed/')) return `https://open.spotify.com${cleanPath}`
+      return `https://open.spotify.com/embed${cleanPath}?utm_source=generator&theme=0`
+    }
+  } catch {
+    return null
+  }
+  return null
+}
 
-  const [playing, setPlaying] = useState(false)
+export function ReleasePlayer({ release }: ReleasePlayerProps) {
+  const spotifyEmbed = getSpotifyEmbedUrl(release.spotify_url)
 
   return (
-    <div className="mt-7">
-      <h2 className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#737c85]">
-        Latest release
-      </h2>
-      <div className="mt-3 rounded-2xl border border-white/[0.08] bg-[#20242a] p-3.5">
-        <div className="flex items-center gap-3">
-          <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#b9a894] via-[#656a71] to-[#272b31] shadow-inner">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#f1ebe2] text-center leading-tight">
-              {release.title.replace(' ', '\n')}
-            </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-[0.16em] text-[#737c86]">
-              {release.type} · {release.year}
-            </p>
-            <p className="mt-1 truncate font-medium">{release.title}</p>
-          </div>
-          <button
-            onClick={() => setPlaying(!playing)}
-            className="flex size-10 items-center justify-center rounded-full bg-[#e2d9cc] text-[#24201d] transition hover:bg-white"
-            aria-label={playing ? 'Pause track' : 'Play track'}
+    <div className="rounded-2xl border border-white/[0.08] bg-[#121316]/60 p-4 sm:p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-[#9299a1]">
+          <Disc3 className="size-3.5 text-[#e2d9cc]" />
+          <span>Latest Release · {release.type} ({release.year})</span>
+        </div>
+        {release.apple_url && (
+          <a
+            href={release.apple_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[11px] font-mono text-[#9299a1] hover:text-white transition"
           >
-            {playing ? (
-              <span className="flex gap-1">
-                <i className="h-4 w-1 rounded-full bg-current" />
-                <i className="h-4 w-1 rounded-full bg-current" />
-              </span>
-            ) : (
-              <Play className="ml-0.5 size-4 fill-current" />
-            )}
-          </button>
-        </div>
+            Apple Music <ExternalLink className="size-3" />
+          </a>
+        )}
+      </div>
 
-        <div className="mt-4 flex items-center gap-3">
-          <span className="font-mono text-[10px] text-[#9098a1]">
-            {playing ? '01:12' : '00:00'}
-          </span>
-          <Waveform isPlaying={playing} />
-          <span className="font-mono text-[10px] text-[#9098a1]">{release.duration}</span>
-        </div>
-
-        <div className="mt-3 flex gap-2">
+      {spotifyEmbed ? (
+        <iframe
+          src={spotifyEmbed}
+          width="100%"
+          height="152"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+          className="rounded-xl border-0"
+          title={release.title}
+        />
+      ) : (
+        /* Fallback visual si el link no es de Spotify o aún no está cargado */
+        <div className="flex items-center gap-4">
+          {release.cover_url ? (
+            <img
+              src={release.cover_url}
+              alt={release.title}
+              className="size-16 rounded-xl object-cover border border-white/10"
+            />
+          ) : (
+            <div className="flex size-16 items-center justify-center rounded-xl bg-white/5 text-xs font-mono text-[#606871]">
+              COVER
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="truncate font-medium text-[#e9e5df]">{release.title}</h3>
+            <p className="text-xs text-[#9299a1] capitalize">{release.type} · {release.year}</p>
+          </div>
           {release.spotify_url && (
             <a
               href={release.spotify_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 py-2 text-[11px] text-[#b3bac0] transition hover:border-white/25 hover:text-white"
+              className="rounded-full bg-[#e2d9cc] px-4 py-2 text-xs font-medium text-[#121316] hover:bg-white transition"
             >
-              <Music2 className="size-3.5" /> Spotify
-            </a>
-          )}
-          {release.apple_url && (
-            <a
-              href={release.apple_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 py-2 text-[11px] text-[#b3bac0] transition hover:border-white/25 hover:text-white"
-            >
-              <Apple className="size-3.5" /> Apple Music
+              Escuchar
             </a>
           )}
         </div>
-      </div>
+      )}
     </div>
   )
 }

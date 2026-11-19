@@ -7,6 +7,7 @@ import { ProfileForm } from '@/components/admin/ProfileForm'
 import { ReleasesManager } from '@/components/admin/ReleasesManager'
 import { LinksManager } from '@/components/admin/LinksManager'
 import { SocialsManager } from '@/components/admin/SocialsManager'
+import { useRouter } from 'next/navigation'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'releases' | 'links' | 'socials'>('profile')
@@ -31,6 +32,8 @@ export default function AdminPage() {
   const [platform, setPlatform] = useState('spotify')
   const [socialUrl, setSocialUrl] = useState('')
   const [socials, setSocials] = useState<Database['public']['Tables']['socials']['Row'][]>([])
+
+  const router = useRouter()
 
   async function loadAdminData() {
     setLoading(true)
@@ -71,8 +74,23 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    loadAdminData()
+    async function checkAuthAndLoad() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.push('/admin/login')
+        return
+      }
+      loadAdminData()
+    }
+
+    checkAuthAndLoad()
   }, [])
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/admin/login')
+    router.refresh()
+  }
 
   // --- Handlers Releases ---
   async function handleAddRelease(e: React.FormEvent) {
@@ -216,12 +234,20 @@ export default function AdminPage() {
           <h1 className="text-xl font-bold font-mono">ADMIN PANEL</h1>
           <p className="text-xs text-[#a0a0a0] font-mono">Gestión de contenido para @{profile?.slug}</p>
         </div>
-        <a
-          href="/"
-          className="text-xs font-mono text-[#a0a0a0] hover:text-white border border-[#2a2d34] px-3 py-1.5 rounded transition"
-        >
-          ← Ver Bio Pública
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href="/"
+            className="text-xs font-mono text-[#a0a0a0] hover:text-white border border-[#2a2d34] px-3 py-1.5 rounded transition"
+          >
+            ← Ver Bio
+          </a>
+          <button
+            onClick={handleLogout}
+            className="text-xs font-mono text-red-400 hover:text-red-300 border border-red-900/40 px-3 py-1.5 rounded bg-red-950/20 transition cursor-pointer"
+          >
+            Salir
+          </button>
+        </div>
       </header>
 
       {/* Tabs */}
