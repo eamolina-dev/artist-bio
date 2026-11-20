@@ -2,19 +2,32 @@
 
 import { useState } from 'react'
 import { uploadImage } from '@/lib/upload-image'
+import { supabase } from '@/lib/supabase'
 import type { Database } from '@/types/supabase'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 
+function sanitizeSlug(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
 export function ProfileForm({
   profile,
   onSave,
 }: {
-  profile: Profile | null
+  profile: Profile
   onSave: (updatedFields: ProfileUpdate) => Promise<void>
 }) {
   const [name, setName] = useState(profile?.name || '')
+  const [slug, setSlug] = useState(profile.slug)
   const [tagline, setTagline] = useState(profile?.tagline || '')
   const [location, setLocation] = useState(profile?.location || '')
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '')
@@ -48,9 +61,37 @@ export function ProfileForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const cleanSlug = sanitizeSlug(slug)
+
+    if (!cleanSlug) {
+      alert('Enter a valid page URL.')
+      return
+    }
+
     setSaving(true)
+    const { data: existingProfile, error: lookupError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('slug', cleanSlug)
+      .neq('id', profile.id)
+      .maybeSingle()
+
+    if (lookupError) {
+      console.error(lookupError)
+      alert('Could not check page URL availability.')
+      setSaving(false)
+      return
+    }
+
+    if (existingProfile) {
+      alert('That page URL is already taken. Try another one.')
+      setSaving(false)
+      return
+    }
+
     await onSave({
       name,
+      slug: cleanSlug,
       tagline,
       location,
       avatar_url: avatarUrl,
@@ -72,6 +113,23 @@ export function ProfileForm({
             onChange={(e) => setName(e.target.value)}
             className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-white"
           />
+        </div>
+
+        <div>
+          <label className="block text-xs font-mono text-[#a0a0a0] mb-1">YOUR PAGE URL</label>
+          <div className="flex items-center bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 focus-within:border-white">
+            <span className="text-[#606871] select-none">artist-bio/</span>
+            <input
+              type="text"
+              required
+              value={slug}
+              onChange={(e) => setSlug(sanitizeSlug(e.target.value))}
+              className="flex-1 bg-transparent text-sm text-white focus:outline-none"
+            />
+          </div>
+          <p className="mt-1 text-[10px] font-mono text-[#606871]">
+            Your page: artist-bio/{slug || 'your-name'}
+          </p>
         </div>
 
         <div>

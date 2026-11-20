@@ -9,151 +9,6 @@ import { LinksManager } from '@/components/admin/LinksManager'
 import { SocialsManager } from '@/components/admin/SocialsManager'
 import { useRouter } from 'next/navigation'
 
-function OnboardingSetup({
-  userId,
-  onCreated,
-  onLogout,
-}: {
-  userId: string
-  onCreated: () => void
-  onLogout: () => void
-}) {
-  const [name, setName] = useState('')
-  const [slug, setSlug] = useState('')
-  const [slugEditedManually, setSlugEditedManually] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  function sanitizeSlug(value: string) {
-    return value
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
-  }
-
-  async function handleCreateProfile(e: React.FormEvent) {
-    e.preventDefault()
-    const cleanName = name.trim()
-    const cleanSlug = sanitizeSlug(slug)
-
-    if (!cleanName || !cleanSlug) {
-      setError('Enter your artist name and a valid URL.')
-      return
-    }
-
-    setSaving(true)
-    setError(null)
-
-    const { data: existing } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('slug', cleanSlug)
-      .maybeSingle()
-
-    if (existing) {
-      setError('That link is already taken. Try another one.')
-      setSaving(false)
-      return
-    }
-
-    const { error: insertError } = await supabase.from('profiles').insert({
-      id: crypto.randomUUID(),
-      user_id: userId,
-      name: cleanName,
-      slug: cleanSlug,
-    })
-
-    if (insertError) {
-      setError(insertError.message)
-      setSaving(false)
-      return
-    }
-
-    onCreated()
-  }
-
-  return (
-    <main className="min-h-screen bg-[#121316] text-[#e9e5df] flex items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-md border border-[#2a2d34] bg-[#18191c] p-6 sm:p-8 rounded-lg space-y-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#a0a0a0]">
-              ARTIST-BIO
-            </p>
-            <h1 className="text-lg font-mono font-bold mt-1">CREATE YOUR PROFILE</h1>
-            <p className="text-xs font-mono text-[#a0a0a0] mt-1">
-              Choose your artist name and the link you’ll share on your socials.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="text-xs font-mono text-red-400 hover:text-red-300 border border-red-900/40 px-2.5 py-1 rounded bg-red-950/20 transition cursor-pointer"
-          >
-            Sign out
-          </button>
-        </div>
-
-        {error && (
-          <div className="bg-red-950/40 border border-red-900/50 text-red-300 text-xs font-mono p-3 rounded">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleCreateProfile} className="space-y-4 font-mono text-xs">
-          <div>
-            <label className="block text-[#a0a0a0] mb-1">ARTIST / PROJECT NAME</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => {
-                const val = e.target.value
-                setName(val)
-                if (!slugEditedManually) {
-                  setSlug(sanitizeSlug(val))
-                }
-              }}
-              placeholder="e.g. Moli"
-              className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[#a0a0a0] mb-1">YOUR CUSTOM LINK</label>
-            <div className="flex items-center bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 focus-within:border-white">
-              <span className="text-[#606871] select-none">artist-bio/</span>
-              <input
-                type="text"
-                required
-                value={slug}
-                onChange={(e) => {
-                  setSlugEditedManually(true)
-                  setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
-                }}
-                placeholder="your-name"
-                className="flex-1 bg-transparent text-white focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full bg-white text-black font-bold py-2.5 rounded hover:bg-gray-200 transition cursor-pointer disabled:opacity-50 mt-2"
-          >
-            {saving ? 'Creating profile...' : 'Claim my page'}
-          </button>
-        </form>
-      </div>
-    </main>
-  )
-}
-
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'releases' | 'links' | 'socials'>('profile')
   const [loading, setLoading] = useState(true)
@@ -188,7 +43,7 @@ export default function AdminPage() {
     const { data: profileData } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', currentUserId)
+      .eq('id', currentUserId)
       .maybeSingle()
 
     if (profileData) {
@@ -413,13 +268,18 @@ export default function AdminPage() {
     )
   }
 
-  if (!profile && userId) {
+  if (!profile) {
     return (
-      <OnboardingSetup
-        userId={userId}
-        onCreated={() => loadAdminData(userId)}
-        onLogout={handleLogout}
-      />
+      <main className="min-h-screen bg-[#121316] text-[#e9e5df] flex flex-col items-center justify-center gap-4 p-4 font-mono text-sm">
+        <p>Profile not found. Please try again or sign out.</p>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="text-xs text-red-400 hover:text-red-300 border border-red-900/40 px-3 py-1.5 rounded bg-red-950/20 transition cursor-pointer"
+        >
+          Sign out
+        </button>
+      </main>
     )
   }
 
@@ -428,11 +288,11 @@ export default function AdminPage() {
       <header className="flex items-center justify-between border-b border-[#2a2d34] pb-4 mb-8">
         <div>
           <h1 className="text-xl font-bold font-mono">ADMIN PANEL</h1>
-          <p className="text-xs text-[#a0a0a0] font-mono">Managing content for @{profile?.slug}</p>
+          <p className="text-xs text-[#a0a0a0] font-mono">Managing content for @{profile.slug}</p>
         </div>
         <div className="flex items-center gap-2">
           <a
-            href={`/${profile?.slug}`}
+            href={`/${profile.slug}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs font-mono text-[#a0a0a0] hover:text-white border border-[#2a2d34] px-3 py-1.5 rounded transition"
@@ -485,7 +345,7 @@ export default function AdminPage() {
 
       {activeTab === 'profile' && (
         <ProfileForm
-          key={profile?.id}
+          key={profile.id}
           profile={profile}
           onSave={async (updatedFields) => {
             if (!profile) return
