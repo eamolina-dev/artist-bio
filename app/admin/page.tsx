@@ -1,14 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Database } from '@/types/supabase'
+import type { Database } from '@/types/supabase'
 import { ProfileForm } from '@/components/admin/ProfileForm'
 import { ReleasesManager } from '@/components/admin/ReleasesManager'
 import { LinksManager } from '@/components/admin/LinksManager'
 import { SocialsManager } from '@/components/admin/SocialsManager'
 import { useRouter } from 'next/navigation'
-import type { OwnedProfile } from '@/types/app-database'
 
 function OnboardingSetup({
   userId,
@@ -62,6 +61,7 @@ function OnboardingSetup({
     }
 
     const { error: insertError } = await supabase.from('profiles').insert({
+      id: crypto.randomUUID(),
       user_id: userId,
       name: cleanName,
       slug: cleanSlug,
@@ -158,7 +158,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'releases' | 'links' | 'socials'>('profile')
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
-  const [profile, setProfile] = useState<OwnedProfile | null>(null)
+  const [profile, setProfile] = useState<Database['public']['Tables']['profiles']['Row'] | null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
 
   // Estados Releases
@@ -182,18 +182,13 @@ export default function AdminPage() {
 
   const router = useRouter()
 
-  async function loadAdminData(currentUserId?: string) {
+  const loadAdminData = useCallback(async (currentUserId: string) => {
     setLoading(true)
-    const uid = currentUserId || userId
-    if (!uid) {
-      setLoading(false)
-      return
-    }
 
     const { data: profileData } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', uid)
+      .eq('user_id', currentUserId)
       .maybeSingle()
 
     if (profileData) {
@@ -231,21 +226,34 @@ export default function AdminPage() {
       setProfile(null)
     }
     setLoading(false)
-  }
+  }, [])
+
+  const refreshAdminData = useCallback(() => {
+    if (userId) {
+      void loadAdminData(userId)
+    }
+  }, [loadAdminData, userId])
 
   useEffect(() => {
+    let cancelled = false
+
     async function checkAuthAndLoad() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         router.replace('/admin/login')
         return
       }
+      if (cancelled) return
+
       setUserId(session.user.id)
-      loadAdminData(session.user.id)
+      void loadAdminData(session.user.id)
     }
 
-    checkAuthAndLoad()
-  }, [])
+    void checkAuthAndLoad()
+    return () => {
+      cancelled = true
+    }
+  }, [loadAdminData, router])
 
   async function handleCopyLink() {
     if (!profile) return
@@ -292,7 +300,7 @@ export default function AdminPage() {
       setSpotifyUrl('')
       setAppleUrl('')
       setCoverUrl('')
-      loadAdminData()
+      refreshAdminData()
     } catch (err) {
       console.error(err)
       alert('Error al agregar release')
@@ -333,7 +341,7 @@ export default function AdminPage() {
       alert('¡Link creado!')
       setLinkTitle('')
       setLinkUrl('')
-      loadAdminData()
+      refreshAdminData()
     } catch (err) {
       console.error(err)
       alert('Error al agregar link')
@@ -374,7 +382,7 @@ export default function AdminPage() {
       if (error) throw error
       alert('¡Red social agregada!')
       setSocialUrl('')
-      loadAdminData()
+      refreshAdminData()
     } catch (err) {
       console.error(err)
       alert('Error al agregar red social')
@@ -477,6 +485,7 @@ export default function AdminPage() {
 
       {activeTab === 'profile' && (
         <ProfileForm
+          key={profile?.id}
           profile={profile}
           onSave={async (updatedFields) => {
             if (!profile) return
@@ -488,7 +497,7 @@ export default function AdminPage() {
                 .eq('id', profile.id)
               if (error) throw error
               alert('¡Perfil actualizado!')
-              loadAdminData()
+              refreshAdminData()
             } catch (err) {
               console.error(err)
               alert('Error guardando cambios')

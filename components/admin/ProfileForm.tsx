@@ -1,17 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { uploadImage } from '@/lib/upload-image'
-import { Database } from '@/types/supabase'
+import type { Database } from '@/types/supabase'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 
 export function ProfileForm({
   profile,
   onSave,
 }: {
   profile: Profile | null
-  onSave: (updatedFields: Partial<Profile>) => Promise<void>
+  onSave: (updatedFields: ProfileUpdate) => Promise<void>
 }) {
   const [name, setName] = useState(profile?.name || '')
   const [tagline, setTagline] = useState(profile?.tagline || '')
@@ -22,17 +23,6 @@ export function ProfileForm({
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
   const [saving, setSaving] = useState(false)
-
-  // Sincronizar si el perfil cambia al cargar la página
-  useEffect(() => {
-    if (profile) {
-      setName(profile.name || '')
-      setTagline(profile.tagline || '')
-      setLocation(profile.location || '')
-      setAvatarUrl(profile.avatar_url || '')
-      setCoverUrl(profile.cover_url || '')
-    }
-  }, [profile])
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
