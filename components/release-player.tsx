@@ -58,7 +58,7 @@ export function ReleasePlayer({ release }: ReleasePlayerProps) {
           title={release.title}
         />
       ) : (
-        /* Fallback visual si el link no es de Spotify o aún no está cargado */
+        /* Fallback when no Spotify link is available */
         <div className="flex items-center gap-4">
           {release.cover_url ? (
             <img
@@ -82,7 +82,7 @@ export function ReleasePlayer({ release }: ReleasePlayerProps) {
               rel="noopener noreferrer"
               className="rounded-full bg-[#e2d9cc] px-4 py-2 text-xs font-medium text-[#121316] hover:bg-white transition"
             >
-              Escuchar
+              Listen
             </a>
           )}
         </div>

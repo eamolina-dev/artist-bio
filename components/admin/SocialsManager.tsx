@@ -27,7 +27,7 @@ export function SocialsManager({
   return (
     <div className="space-y-8 font-mono text-sm">
       <form onSubmit={onSubmit} className="space-y-4 border-b border-[#2a2d34] pb-6">
-        <h2 className="text-xs text-[#a0a0a0] font-bold uppercase tracking-wider mb-2">Agregar Red Social</h2>
+        <h2 className="text-xs text-[#a0a0a0] font-bold uppercase tracking-wider mb-2">Add social profile</h2>
         
         <div>
           <label className="block text-xs text-[#a0a0a0] mb-1">Plataforma</label>
@@ -45,7 +45,7 @@ export function SocialsManager({
         </div>
 
         <div>
-          <label className="block text-xs text-[#a0a0a0] mb-1">URL de la Red Social</label>
+          <label className="block text-xs text-[#a0a0a0] mb-1">Social profile URL</label>
           <input
             type="url"
             placeholder="https://spotify.com/artist/..."
@@ -59,14 +59,14 @@ export function SocialsManager({
           type="submit"
           className="w-full bg-white text-black font-bold py-2.5 rounded mt-2 hover:bg-[#d0d0d0] transition cursor-pointer"
         >
-          Agregar Red Social
+          Add social profile
         </button>
       </form>
 
       <div className="space-y-3">
-        <h2 className="text-xs text-[#a0a0a0] font-bold uppercase tracking-wider">Redes Configuradas</h2>
+        <h2 className="text-xs text-[#a0a0a0] font-bold uppercase tracking-wider">Your social profiles</h2>
         {socials.length === 0 ? (
-          <p className="text-xs text-[#666]">No hay redes sociales cargadas.</p>
+          <p className="text-xs text-[#666]">No social profiles added yet.</p>
         ) : (
           socials.map((social) => (
             <div key={social.id} className="flex items-center justify-between bg-[#1a1b1f] border border-[#2a2d34] p-3 rounded">
@@ -80,7 +80,7 @@ export function SocialsManager({
                 onClick={() => onDelete(social.id)}
                 className="text-xs text-red-400 hover:text-red-300 px-2 py-1 border border-red-900/40 rounded bg-red-950/20 shrink-0 cursor-pointer"
               >
-                Eliminar
+                Delete
               </button>
             </div>
           ))

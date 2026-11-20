@@ -31,7 +31,7 @@ export function ProfileForm({
     setUploadingAvatar(true)
     const url = await uploadImage(file, 'avatars')
     if (url) setAvatarUrl(url)
-    else alert('Error al subir el avatar')
+    else alert('Could not upload the profile photo.')
     setUploadingAvatar(false)
   }
 
@@ -42,7 +42,7 @@ export function ProfileForm({
     setUploadingCover(true)
     const url = await uploadImage(file, 'covers')
     if (url) setCoverUrl(url)
-    else alert('Error al subir la portada')
+    else alert('Could not upload the cover image.')
     setUploadingCover(false)
   }
 
@@ -62,10 +62,10 @@ export function ProfileForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6 font-sans">
       <div className="space-y-4 border border-[#2a2d34] p-5 rounded-lg bg-[#18191c]">
-        <h2 className="text-sm font-mono text-[#a0a0a0] mb-2">[ Configuración de Identidad ]</h2>
+        <h2 className="text-sm font-mono text-[#a0a0a0] mb-2">[ Profile details ]</h2>
 
         <div>
-          <label className="block text-xs font-mono text-[#a0a0a0] mb-1">NOMBRE ARTÍSTICO</label>
+          <label className="block text-xs font-mono text-[#a0a0a0] mb-1">ARTIST NAME</label>
           <input
             type="text"
             value={name}
@@ -75,7 +75,7 @@ export function ProfileForm({
         </div>
 
         <div>
-          <label className="block text-xs font-mono text-[#a0a0a0] mb-1">TAGLINE (Frase corta)</label>
+          <label className="block text-xs font-mono text-[#a0a0a0] mb-1">TAGLINE</label>
           <input
             type="text"
             value={tagline}
@@ -85,7 +85,7 @@ export function ProfileForm({
         </div>
 
         <div>
-          <label className="block text-xs font-mono text-[#a0a0a0] mb-1">UBICACIÓN</label>
+          <label className="block text-xs font-mono text-[#a0a0a0] mb-1">LOCATION</label>
           <input
             type="text"
             value={location}
@@ -96,7 +96,7 @@ export function ProfileForm({
 
         {/* Avatar Upload */}
         <div>
-          <label className="block text-xs font-mono text-[#a0a0a0] mb-1">FOTO DE PERFIL (Avatar)</label>
+          <label className="block text-xs font-mono text-[#a0a0a0] mb-1">PROFILE PHOTO</label>
           <div className="flex items-center gap-4">
             {avatarUrl && (
               <img src={avatarUrl} alt="Avatar preview" className="size-12 rounded-full object-cover border border-[#2a2d34]" />
@@ -109,12 +109,12 @@ export function ProfileForm({
               className="text-xs text-[#a0a0a0] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-mono file:bg-white file:text-black hover:file:bg-gray-200 cursor-pointer"
             />
           </div>
-          {uploadingAvatar && <p className="text-xs font-mono text-yellow-400 mt-1">Subiendo avatar...</p>}
+          {uploadingAvatar && <p className="text-xs font-mono text-yellow-400 mt-1">Uploading profile photo...</p>}
         </div>
 
         {/* Cover Upload */}
         <div>
-          <label className="block text-xs font-mono text-[#a0a0a0] mb-1">IMAGEN DE PORTADA (Cover)</label>
+          <label className="block text-xs font-mono text-[#a0a0a0] mb-1">COVER IMAGE</label>
           <div className="space-y-2">
             {coverUrl && (
               <img src={coverUrl} alt="Cover preview" className="w-full h-24 rounded object-cover border border-[#2a2d34]" />
@@ -127,7 +127,7 @@ export function ProfileForm({
               className="text-xs text-[#a0a0a0] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-mono file:bg-white file:text-black hover:file:bg-gray-200 cursor-pointer"
             />
           </div>
-          {uploadingCover && <p className="text-xs font-mono text-yellow-400 mt-1">Subiendo portada...</p>}
+          {uploadingCover && <p className="text-xs font-mono text-yellow-400 mt-1">Uploading cover image...</p>}
         </div>
       </div>
 
@@ -136,7 +136,7 @@ export function ProfileForm({
         disabled={saving}
         className="w-full bg-white text-black font-mono text-xs font-bold py-2.5 rounded hover:bg-gray-200 transition cursor-pointer disabled:opacity-50"
       >
-        {saving ? 'Guardando...' : 'Guardar Cambios de Perfil'}
+        {saving ? 'Saving...' : 'Save profile'}
       </button>
     </form>
   )

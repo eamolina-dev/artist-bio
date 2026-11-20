@@ -53,7 +53,7 @@ export function ProfileHeader({
 
       <div className="px-5">
         <div className="flex items-end justify-between">
-          {/* Avatar con fallback dinámico a iniciales */}
+          {/* Avatar with dynamic initials fallback */}
           <div className="flex size-[76px] items-center justify-center rounded-full border-4 border-[#181b20] bg-[#b8a38c] text-2xl font-semibold tracking-[-0.08em] text-[#27211c] overflow-hidden">
             {avatarUrl ? (
               <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />

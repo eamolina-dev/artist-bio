@@ -41,7 +41,7 @@ function OnboardingSetup({
     const cleanSlug = sanitizeSlug(slug)
 
     if (!cleanName || !cleanSlug) {
-      setError('Completá tu nombre artístico y una URL válida.')
+      setError('Enter your artist name and a valid URL.')
       return
     }
 
@@ -55,7 +55,7 @@ function OnboardingSetup({
       .maybeSingle()
 
     if (existing) {
-      setError('Ese link ya está ocupado por otro artista. Probá con otro.')
+      setError('That link is already taken. Try another one.')
       setSaving(false)
       return
     }
@@ -84,9 +84,9 @@ function OnboardingSetup({
             <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#a0a0a0]">
               ARTIST-BIO
             </p>
-            <h1 className="text-lg font-mono font-bold mt-1">CREÁ TU PERFIL</h1>
+            <h1 className="text-lg font-mono font-bold mt-1">CREATE YOUR PROFILE</h1>
             <p className="text-xs font-mono text-[#a0a0a0] mt-1">
-              Elegí tu nombre artístico y el link que vas a compartir en tus redes.
+              Choose your artist name and the link you’ll share on your socials.
             </p>
           </div>
           <button
@@ -94,7 +94,7 @@ function OnboardingSetup({
             onClick={onLogout}
             className="text-xs font-mono text-red-400 hover:text-red-300 border border-red-900/40 px-2.5 py-1 rounded bg-red-950/20 transition cursor-pointer"
           >
-            Salir
+            Sign out
           </button>
         </div>
 
@@ -106,7 +106,7 @@ function OnboardingSetup({
 
         <form onSubmit={handleCreateProfile} className="space-y-4 font-mono text-xs">
           <div>
-            <label className="block text-[#a0a0a0] mb-1">NOMBRE ARTÍSTICO / PROYECTO</label>
+            <label className="block text-[#a0a0a0] mb-1">ARTIST / PROJECT NAME</label>
             <input
               type="text"
               required
@@ -118,13 +118,13 @@ function OnboardingSetup({
                   setSlug(sanitizeSlug(val))
                 }
               }}
-              placeholder="Ej: Moli"
+              placeholder="e.g. Moli"
               className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
             />
           </div>
 
           <div>
-            <label className="block text-[#a0a0a0] mb-1">TU LINK PERSONALIZADO</label>
+            <label className="block text-[#a0a0a0] mb-1">YOUR CUSTOM LINK</label>
             <div className="flex items-center bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 focus-within:border-white">
               <span className="text-[#606871] select-none">artist-bio/</span>
               <input
@@ -135,7 +135,7 @@ function OnboardingSetup({
                   setSlugEditedManually(true)
                   setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
                 }}
-                placeholder="tu-nombre"
+                placeholder="your-name"
                 className="flex-1 bg-transparent text-white focus:outline-none"
               />
             </div>
@@ -146,7 +146,7 @@ function OnboardingSetup({
             disabled={saving}
             className="w-full bg-white text-black font-bold py-2.5 rounded hover:bg-gray-200 transition cursor-pointer disabled:opacity-50 mt-2"
           >
-            {saving ? 'Creando perfil...' : 'Reclamar mi página'}
+            {saving ? 'Creating profile...' : 'Claim my page'}
           </button>
         </form>
       </div>
@@ -194,7 +194,7 @@ export default function AdminPage() {
     if (profileData) {
       setProfile(profileData)
 
-      // Cargar Releases
+      // Load releases
       const { data: releasesData } = await supabase
         .from('releases')
         .select('*')
@@ -204,7 +204,7 @@ export default function AdminPage() {
 
       if (releasesData) setReleases(releasesData)
 
-      // Cargar Custom Links
+      // Load custom links
       const { data: linksData } = await supabase
         .from('custom_links')
         .select('*')
@@ -214,7 +214,7 @@ export default function AdminPage() {
 
       if (linksData) setCustomLinks(linksData)
 
-      // Cargar Socials
+      // Load social profiles
       const { data: socialsData } = await supabase
         .from('socials')
         .select('*')
@@ -263,7 +263,7 @@ export default function AdminPage() {
       setLinkCopied(true)
       window.setTimeout(() => setLinkCopied(false), 2000)
     } catch {
-      window.alert('No se pudo copiar el link.')
+      window.alert('Could not copy the link.')
     }
   }
 
@@ -279,7 +279,7 @@ export default function AdminPage() {
   async function handleAddRelease(e: React.FormEvent) {
     e.preventDefault()
     if (!profile) return
-    if (!releaseTitle) return alert('El título es obligatorio')
+    if (!releaseTitle) return alert('A release title is required.')
 
     try {
       const { error } = await supabase.from('releases').insert([
@@ -295,7 +295,7 @@ export default function AdminPage() {
         },
       ])
       if (error) throw error
-      alert('¡Release agregado!')
+      alert('Release added.')
       setReleaseTitle('')
       setSpotifyUrl('')
       setAppleUrl('')
@@ -303,12 +303,12 @@ export default function AdminPage() {
       refreshAdminData()
     } catch (err) {
       console.error(err)
-      alert('Error al agregar release')
+      alert('Could not add release.')
     }
   }
 
   async function handleDeleteRelease(id: string) {
-    if (!confirm('¿Ocultar este release?')) return
+    if (!confirm('Hide this release?')) return
 
     const { error } = await supabase
       .from('releases')
@@ -317,7 +317,7 @@ export default function AdminPage() {
 
     if (error) {
       console.error(error)
-      alert('Error al ocultar el release')
+      alert('Could not hide the release.')
     } else {
       setReleases(releases.filter((r) => r.id !== id))
     }
@@ -327,7 +327,7 @@ export default function AdminPage() {
   async function handleAddLink(e: React.FormEvent) {
     e.preventDefault()
     if (!profile) return
-    if (!linkTitle || !linkUrl) return alert('Título y URL requeridos')
+    if (!linkTitle || !linkUrl) return alert('A title and URL are required.')
 
     try {
       const { error } = await supabase.from('custom_links').insert([
@@ -338,18 +338,18 @@ export default function AdminPage() {
         },
       ])
       if (error) throw error
-      alert('¡Link creado!')
+      alert('Link created.')
       setLinkTitle('')
       setLinkUrl('')
       refreshAdminData()
     } catch (err) {
       console.error(err)
-      alert('Error al agregar link')
+      alert('Could not add link.')
     }
   }
 
   async function handleDeleteLink(id: string) {
-    if (!confirm('¿Eliminar este link?')) return
+    if (!confirm('Delete this link?')) return
 
     const { error } = await supabase
       .from('custom_links')
@@ -358,7 +358,7 @@ export default function AdminPage() {
 
     if (error) {
       console.error(error)
-      alert('Error al eliminar el link')
+      alert('Could not delete the link.')
     } else {
       setCustomLinks(customLinks.filter((l) => l.id !== id))
     }
@@ -368,7 +368,7 @@ export default function AdminPage() {
   async function handleAddSocial(e: React.FormEvent) {
     e.preventDefault()
     if (!profile) return
-    if (!socialUrl) return alert('La URL de la red social es requerida')
+    if (!socialUrl) return alert('A social profile URL is required.')
 
     try {
       const { error } = await supabase.from('socials').insert([
@@ -380,17 +380,17 @@ export default function AdminPage() {
         },
       ])
       if (error) throw error
-      alert('¡Red social agregada!')
+      alert('Social profile added.')
       setSocialUrl('')
       refreshAdminData()
     } catch (err) {
       console.error(err)
-      alert('Error al agregar red social')
+      alert('Could not add the social profile.')
     }
   }
 
   async function handleDeleteSocial(id: string) {
-    if (!confirm('¿Eliminar esta red social?')) return
+    if (!confirm('Delete this social profile?')) return
 
     const { error } = await supabase
       .from('socials')
@@ -399,7 +399,7 @@ export default function AdminPage() {
 
     if (error) {
       console.error(error)
-      alert('Error al eliminar la red social')
+      alert('Could not delete the social profile.')
     } else {
       setSocials(socials.filter((s) => s.id !== id))
     }
@@ -408,7 +408,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#121316] text-[#e9e5df] flex items-center justify-center font-mono text-sm">
-        Cargando Panel Admin...
+        Loading admin dashboard...
       </div>
     )
   }
@@ -428,7 +428,7 @@ export default function AdminPage() {
       <header className="flex items-center justify-between border-b border-[#2a2d34] pb-4 mb-8">
         <div>
           <h1 className="text-xl font-bold font-mono">ADMIN PANEL</h1>
-          <p className="text-xs text-[#a0a0a0] font-mono">Gestión de contenido para @{profile?.slug}</p>
+          <p className="text-xs text-[#a0a0a0] font-mono">Managing content for @{profile?.slug}</p>
         </div>
         <div className="flex items-center gap-2">
           <a
@@ -437,20 +437,20 @@ export default function AdminPage() {
             rel="noopener noreferrer"
             className="text-xs font-mono text-[#a0a0a0] hover:text-white border border-[#2a2d34] px-3 py-1.5 rounded transition"
           >
-            ← Ver Bio
+            ← View bio
           </a>
           <button
             type="button"
             onClick={handleCopyLink}
             className="text-xs font-mono text-[#a0a0a0] hover:text-white border border-[#2a2d34] px-3 py-1.5 rounded transition cursor-pointer"
           >
-            {linkCopied ? 'Copiado' : 'Copiar link'}
+            {linkCopied ? 'Copied' : 'Copy link'}
           </button>
           <button
             onClick={handleLogout}
             className="text-xs font-mono text-red-400 hover:text-red-300 border border-red-900/40 px-3 py-1.5 rounded bg-red-950/20 transition cursor-pointer"
           >
-            Salir
+            Sign out
           </button>
         </div>
       </header>
@@ -461,7 +461,7 @@ export default function AdminPage() {
           onClick={() => setActiveTab('profile')}
           className={`px-3 py-1.5 rounded cursor-pointer ${activeTab === 'profile' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
         >
-          [ Perfil ]
+          [ Profile ]
         </button>
         <button
           onClick={() => setActiveTab('releases')}
@@ -479,7 +479,7 @@ export default function AdminPage() {
           onClick={() => setActiveTab('socials')}
           className={`px-3 py-1.5 rounded cursor-pointer ${activeTab === 'socials' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
         >
-          [ Redes ({socials.length}) ]
+          [ Socials ({socials.length}) ]
         </button>
       </div>
 
@@ -496,11 +496,11 @@ export default function AdminPage() {
                 .update(updatedFields)
                 .eq('id', profile.id)
               if (error) throw error
-              alert('¡Perfil actualizado!')
+              alert('Profile updated.')
               refreshAdminData()
             } catch (err) {
               console.error(err)
-              alert('Error guardando cambios')
+              alert('Could not save changes.')
             }
           }}
         />

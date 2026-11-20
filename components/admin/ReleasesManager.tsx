@@ -46,22 +46,22 @@ export function ReleasesManager({
     setUploading(true)
     const url = await uploadImage(file, 'releases')
     if (url) setCoverUrl(url)
-    else alert('Error al subir la carátula')
+    else alert('Could not upload the release artwork.')
     setUploading(false)
   }
 
   return (
     <div className="space-y-6 font-sans">
-      {/* Formulario de Alta */}
+      {/* New release form */}
       <form onSubmit={onSubmit} className="space-y-4 border border-[#2a2d34] p-5 rounded-lg bg-[#18191c]">
-        <h2 className="text-sm font-mono text-[#a0a0a0] mb-2">[ Nuevo Release ]</h2>
+        <h2 className="text-sm font-mono text-[#a0a0a0] mb-2">[ New release ]</h2>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">TÍTULO</label>
+            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">TITLE</label>
             <input
               type="text"
-              placeholder="Ej. Horizon EP"
+              placeholder="e.g. Horizon EP"
               value={releaseTitle}
               onChange={(e) => setReleaseTitle(e.target.value)}
               className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-white"
@@ -76,7 +76,7 @@ export function ReleasesManager({
             >
               <option value="single">Single</option>
               <option value="ep">EP</option>
-              <option value="album">Álbum</option>
+              <option value="album">Album</option>
               <option value="remix">Remix</option>
             </select>
           </div>
@@ -84,7 +84,7 @@ export function ReleasesManager({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">AÑO</label>
+            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">YEAR</label>
             <input
               type="text"
               value={releaseYear}
@@ -93,7 +93,7 @@ export function ReleasesManager({
             />
           </div>
           <div>
-            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">CARÁTULA (Cover Art)</label>
+            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">COVER ART</label>
             <input
               type="file"
               accept="image/*"
@@ -101,7 +101,7 @@ export function ReleasesManager({
               disabled={uploading}
               className="text-xs text-[#a0a0a0] file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-mono file:bg-white file:text-black hover:file:bg-gray-200 cursor-pointer"
             />
-            {uploading && <span className="text-xs text-yellow-400 font-mono">Subiendo...</span>}
+            {uploading && <span className="text-xs text-yellow-400 font-mono">Uploading...</span>}
           </div>
         </div>
 
@@ -132,13 +132,13 @@ export function ReleasesManager({
           type="submit"
           className="w-full bg-white text-black font-mono text-xs font-bold py-2.5 rounded hover:bg-gray-200 transition cursor-pointer mt-2"
         >
-          Agregar Release
+          Add release
         </button>
       </form>
 
-      {/* Lista de Releases Existentes */}
+      {/* Existing releases */}
       <div className="space-y-3">
-        <h3 className="text-xs font-mono text-[#a0a0a0]">[ Releases Activos ]</h3>
+        <h3 className="text-xs font-mono text-[#a0a0a0]">[ Active releases ]</h3>
         {releases.map((rel) => (
           <div key={rel.id} className="flex items-center justify-between border border-[#2a2d34] p-3 rounded bg-[#18191c]">
             <div className="flex items-center gap-3">
@@ -154,7 +154,7 @@ export function ReleasesManager({
               onClick={() => onDelete(rel.id)}
               className="text-xs font-mono text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-1 rounded transition"
             >
-              Ocultar
+              Hide
             </button>
           </div>
         ))}

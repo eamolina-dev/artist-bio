@@ -23,7 +23,7 @@ export function ArtistBio({ slug }: ArtistBioProps) {
   const [showCustomizer, setShowCustomizer] = useState(false)
   const [loading, setLoading] = useState<boolean>(true)
 
-  // Estados reales de Supabase
+  // Supabase state
   const [profile, setProfile] = useState<Profile | null>(null)
   const [releases, setReleases] = useState<Release[]>([])
   const [customLinks, setCustomLinks] = useState<CustomLink[]>([])
@@ -40,7 +40,7 @@ export function ArtistBio({ slug }: ArtistBioProps) {
 
         const targetSlug = (slug || 'moli').trim().toLowerCase()
 
-        // 1. Cargar el perfil por slug
+        // 1. Load profile by slug
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -52,7 +52,7 @@ export function ArtistBio({ slug }: ArtistBioProps) {
         if (profileData) {
           setProfile(profileData)
 
-          // 2. Cargar releases activos de la DB
+          // 2. Load active releases
           const { data: releasesData } = await supabase
             .from('releases')
             .select('*')
@@ -62,7 +62,7 @@ export function ArtistBio({ slug }: ArtistBioProps) {
 
           if (releasesData) setReleases(releasesData)
 
-          // 3. Cargar custom links activos de la DB
+          // 3. Load active custom links
           const { data: linksData } = await supabase
             .from('custom_links')
             .select('*')
@@ -72,7 +72,7 @@ export function ArtistBio({ slug }: ArtistBioProps) {
 
           if (linksData) setCustomLinks(linksData)
 
-          // 4. Cargar redes sociales de la DB
+          // 4. Load social profiles
           const { data: socialsData } = await supabase
             .from('socials')
             .select('*')
@@ -107,10 +107,10 @@ export function ArtistBio({ slug }: ArtistBioProps) {
     )
   }
 
-  // Tomamos el primer release cargado como el latestRelease para el player
+  // Use the first release as the latest release for the player
   const latestRelease = releases[0] || null
 
-  // Iniciales dinámicas según el nombre del artista
+  // Generate initials from the artist name
   const initials = profile.name
     .split(' ')
     .filter(Boolean)
@@ -120,13 +120,13 @@ export function ArtistBio({ slug }: ArtistBioProps) {
 
   return (
     <main className="min-h-screen relative overflow-x-hidden bg-[#121316] text-[#e9e5df] antialiased selection:bg-[#e2d9cc] selection:text-[#121316]">
-      {/* Capa de textura / grano de fondo */}
+      {/* Background grain texture */}
       <div className="grain pointer-events-none fixed inset-0 z-50 opacity-60" />
 
-      {/* Luz tenue ambiental de fondo */}
+      {/* Ambient background glow */}
       <div className="pointer-events-none fixed left-1/2 top-0 -translate-x-1/2 w-full max-w-4xl h-[500px] bg-gradient-to-b from-[#b8a38c]/10 via-[#20242a]/5 to-transparent blur-3xl opacity-50" />
 
-      {/* Contenedor Principal */}
+      {/* Main container */}
       <div className="relative z-10 mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-12 lg:max-w-3xl">
         <section className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#181b20]/90 backdrop-blur-xl shadow-2xl shadow-black/50">
           <ProfileHeader

@@ -42,7 +42,7 @@ function LoginForm() {
         router.push('/admin')
         router.refresh()
       } else {
-        setMessage('Cuenta creada. Revisá tu email para confirmarla y luego iniciá sesión.')
+        setMessage('Account created. Check your email to confirm it, then sign in.')
         setIsSignUp(false)
         setLoading(false)
       }
@@ -67,10 +67,10 @@ function LoginForm() {
       <div className="w-full max-w-sm border border-[#2a2d34] bg-[#18191c] p-6 rounded-lg space-y-6">
         <div>
           <h1 className="text-lg font-mono font-bold">
-            {isSignUp ? 'CREAR CUENTA' : 'ADMIN LOGIN'}
+            {isSignUp ? 'CREATE ACCOUNT' : 'ADMIN LOGIN'}
           </h1>
           <p className="text-xs font-mono text-[#a0a0a0]">
-            {isSignUp ? 'Creá tu perfil de artista gratis' : 'Acceso al panel de gestión'}
+            {isSignUp ? 'Create your artist page for free' : 'Sign in to your dashboard'}
           </p>
         </div>
 
@@ -99,7 +99,7 @@ function LoginForm() {
           </div>
 
           <div>
-            <label className="block text-[#a0a0a0] mb-1">CONTRASEÑA</label>
+            <label className="block text-[#a0a0a0] mb-1">PASSWORD</label>
             <input
               type="password"
               required
@@ -117,11 +117,11 @@ function LoginForm() {
           >
             {loading
               ? isSignUp
-                ? 'Creando cuenta...'
-                : 'Ingresando...'
+                ? 'Creating account...'
+                : 'Signing in...'
               : isSignUp
-                ? 'Crear Cuenta'
-                : 'Iniciar Sesión'}
+                ? 'Create account'
+                : 'Sign in'}
           </button>
         </form>
 
@@ -136,8 +136,8 @@ function LoginForm() {
             className="text-xs font-mono text-[#a0a0a0] hover:text-white transition cursor-pointer"
           >
             {isSignUp
-              ? '¿Ya tenés cuenta? Iniciá sesión'
-              : '¿No tenés cuenta? Registrate gratis'}
+              ? 'Already have an account? Sign in'
+              : 'New here? Create a free account'}
           </button>
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <main className="min-h-screen bg-[#121316] text-[#e9e5df] flex items-center justify-center p-4 font-mono text-sm">
-          Cargando...
+          Loading...
         </main>
       }
     >
