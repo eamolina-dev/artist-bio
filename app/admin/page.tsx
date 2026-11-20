@@ -8,11 +8,158 @@ import { ReleasesManager } from '@/components/admin/ReleasesManager'
 import { LinksManager } from '@/components/admin/LinksManager'
 import { SocialsManager } from '@/components/admin/SocialsManager'
 import { useRouter } from 'next/navigation'
+import type { OwnedProfile } from '@/types/app-database'
+
+function OnboardingSetup({
+  userId,
+  onCreated,
+  onLogout,
+}: {
+  userId: string
+  onCreated: () => void
+  onLogout: () => void
+}) {
+  const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [slugEditedManually, setSlugEditedManually] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  function sanitizeSlug(value: string) {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+  }
+
+  async function handleCreateProfile(e: React.FormEvent) {
+    e.preventDefault()
+    const cleanName = name.trim()
+    const cleanSlug = sanitizeSlug(slug)
+
+    if (!cleanName || !cleanSlug) {
+      setError('Completá tu nombre artístico y una URL válida.')
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('slug', cleanSlug)
+      .maybeSingle()
+
+    if (existing) {
+      setError('Ese link ya está ocupado por otro artista. Probá con otro.')
+      setSaving(false)
+      return
+    }
+
+    const { error: insertError } = await supabase.from('profiles').insert({
+      user_id: userId,
+      name: cleanName,
+      slug: cleanSlug,
+    })
+
+    if (insertError) {
+      setError(insertError.message)
+      setSaving(false)
+      return
+    }
+
+    onCreated()
+  }
+
+  return (
+    <main className="min-h-screen bg-[#121316] text-[#e9e5df] flex items-center justify-center p-4 font-sans">
+      <div className="w-full max-w-md border border-[#2a2d34] bg-[#18191c] p-6 sm:p-8 rounded-lg space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#a0a0a0]">
+              ARTIST-BIO
+            </p>
+            <h1 className="text-lg font-mono font-bold mt-1">CREÁ TU PERFIL</h1>
+            <p className="text-xs font-mono text-[#a0a0a0] mt-1">
+              Elegí tu nombre artístico y el link que vas a compartir en tus redes.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="text-xs font-mono text-red-400 hover:text-red-300 border border-red-900/40 px-2.5 py-1 rounded bg-red-950/20 transition cursor-pointer"
+          >
+            Salir
+          </button>
+        </div>
+
+        {error && (
+          <div className="bg-red-950/40 border border-red-900/50 text-red-300 text-xs font-mono p-3 rounded">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleCreateProfile} className="space-y-4 font-mono text-xs">
+          <div>
+            <label className="block text-[#a0a0a0] mb-1">NOMBRE ARTÍSTICO / PROYECTO</label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => {
+                const val = e.target.value
+                setName(val)
+                if (!slugEditedManually) {
+                  setSlug(sanitizeSlug(val))
+                }
+              }}
+              placeholder="Ej: Moli"
+              className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[#a0a0a0] mb-1">TU LINK PERSONALIZADO</label>
+            <div className="flex items-center bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 focus-within:border-white">
+              <span className="text-[#606871] select-none">artist-bio/</span>
+              <input
+                type="text"
+                required
+                value={slug}
+                onChange={(e) => {
+                  setSlugEditedManually(true)
+                  setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
+                }}
+                placeholder="tu-nombre"
+                className="flex-1 bg-transparent text-white focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full bg-white text-black font-bold py-2.5 rounded hover:bg-gray-200 transition cursor-pointer disabled:opacity-50 mt-2"
+          >
+            {saving ? 'Creando perfil...' : 'Reclamar mi página'}
+          </button>
+        </form>
+      </div>
+    </main>
+  )
+}
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'releases' | 'links' | 'socials'>('profile')
   const [loading, setLoading] = useState(true)
-  const [profile, setProfile] = useState<any>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [profile, setProfile] = useState<OwnedProfile | null>(null)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   // Estados Releases
   const [releaseTitle, setReleaseTitle] = useState('')
@@ -35,9 +182,20 @@ export default function AdminPage() {
 
   const router = useRouter()
 
-  async function loadAdminData() {
+  async function loadAdminData(currentUserId?: string) {
     setLoading(true)
-    const { data: profileData } = await supabase.from('profiles').select('*').single()
+    const uid = currentUserId || userId
+    if (!uid) {
+      setLoading(false)
+      return
+    }
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', uid)
+      .maybeSingle()
+
     if (profileData) {
       setProfile(profileData)
 
@@ -69,6 +227,8 @@ export default function AdminPage() {
         .order('order_index', { ascending: true })
 
       if (socialsData) setSocials(socialsData)
+    } else {
+      setProfile(null)
     }
     setLoading(false)
   }
@@ -77,17 +237,32 @@ export default function AdminPage() {
     async function checkAuthAndLoad() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
-        router.push('/admin/login')
+        router.replace('/admin/login')
         return
       }
-      loadAdminData()
+      setUserId(session.user.id)
+      loadAdminData(session.user.id)
     }
 
     checkAuthAndLoad()
   }, [])
 
+  async function handleCopyLink() {
+    if (!profile) return
+
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/${profile.slug}`)
+      setLinkCopied(true)
+      window.setTimeout(() => setLinkCopied(false), 2000)
+    } catch {
+      window.alert('No se pudo copiar el link.')
+    }
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut()
+    setUserId(null)
+    setProfile(null)
     router.push('/admin/login')
     router.refresh()
   }
@@ -95,6 +270,7 @@ export default function AdminPage() {
   // --- Handlers Releases ---
   async function handleAddRelease(e: React.FormEvent) {
     e.preventDefault()
+    if (!profile) return
     if (!releaseTitle) return alert('El título es obligatorio')
 
     try {
@@ -142,6 +318,7 @@ export default function AdminPage() {
   // --- Handlers Links ---
   async function handleAddLink(e: React.FormEvent) {
     e.preventDefault()
+    if (!profile) return
     if (!linkTitle || !linkUrl) return alert('Título y URL requeridos')
 
     try {
@@ -182,6 +359,7 @@ export default function AdminPage() {
   // --- Handlers Socials ---
   async function handleAddSocial(e: React.FormEvent) {
     e.preventDefault()
+    if (!profile) return
     if (!socialUrl) return alert('La URL de la red social es requerida')
 
     try {
@@ -227,6 +405,16 @@ export default function AdminPage() {
     )
   }
 
+  if (!profile && userId) {
+    return (
+      <OnboardingSetup
+        userId={userId}
+        onCreated={() => loadAdminData(userId)}
+        onLogout={handleLogout}
+      />
+    )
+  }
+
   return (
     <main className="min-h-screen bg-[#121316] text-[#e9e5df] p-6 max-w-2xl mx-auto font-sans">
       <header className="flex items-center justify-between border-b border-[#2a2d34] pb-4 mb-8">
@@ -236,11 +424,20 @@ export default function AdminPage() {
         </div>
         <div className="flex items-center gap-2">
           <a
-            href="/"
+            href={`/${profile?.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-xs font-mono text-[#a0a0a0] hover:text-white border border-[#2a2d34] px-3 py-1.5 rounded transition"
           >
             ← Ver Bio
           </a>
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="text-xs font-mono text-[#a0a0a0] hover:text-white border border-[#2a2d34] px-3 py-1.5 rounded transition cursor-pointer"
+          >
+            {linkCopied ? 'Copiado' : 'Copiar link'}
+          </button>
           <button
             onClick={handleLogout}
             className="text-xs font-mono text-red-400 hover:text-red-300 border border-red-900/40 px-3 py-1.5 rounded bg-red-950/20 transition cursor-pointer"
@@ -282,6 +479,8 @@ export default function AdminPage() {
         <ProfileForm
           profile={profile}
           onSave={async (updatedFields) => {
+            if (!profile) return
+
             try {
               const { error } = await supabase
                 .from('profiles')

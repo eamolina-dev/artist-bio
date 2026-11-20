@@ -15,7 +15,11 @@ type Release = Database['public']['Tables']['releases']['Row']
 type CustomLink = Database['public']['Tables']['custom_links']['Row']
 type Social = Database['public']['Tables']['socials']['Row']
 
-export function ArtistBio() {
+interface ArtistBioProps {
+  slug?: string
+}
+
+export function ArtistBio({ slug }: ArtistBioProps) {
   const [showCustomizer, setShowCustomizer] = useState(false)
   const [loading, setLoading] = useState<boolean>(true)
 
@@ -29,13 +33,19 @@ export function ArtistBio() {
     async function fetchPublicData() {
       try {
         setLoading(true)
+        setProfile(null)
+        setReleases([])
+        setCustomLinks([])
+        setSocials([])
 
-        // 1. Cargar el perfil principal (@moli)
+        const targetSlug = (slug || 'moli').trim().toLowerCase()
+
+        // 1. Cargar el perfil por slug
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('slug', 'moli')
-          .single()
+          .eq('slug', targetSlug)
+          .maybeSingle()
 
         if (profileError) throw profileError
 
@@ -79,7 +89,7 @@ export function ArtistBio() {
     }
 
     fetchPublicData()
-  }, [])
+  }, [slug])
 
   if (loading) {
     return (
@@ -100,6 +110,14 @@ export function ArtistBio() {
   // Tomamos el primer release cargado como el latestRelease para el player
   const latestRelease = releases[0] || null
 
+  // Iniciales dinámicas según el nombre del artista
+  const initials = profile.name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase())
+    .join('') || 'AR'
+
   return (
     <main className="min-h-screen relative overflow-x-hidden bg-[#121316] text-[#e9e5df] antialiased selection:bg-[#e2d9cc] selection:text-[#121316]">
       {/* Capa de textura / grano de fondo */}
@@ -111,7 +129,6 @@ export function ArtistBio() {
       {/* Contenedor Principal */}
       <div className="relative z-10 mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-12 lg:max-w-3xl">
         <section className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#181b20]/90 backdrop-blur-xl shadow-2xl shadow-black/50">
-          
           <ProfileHeader
             name={profile.name}
             tagline={profile.tagline || ''}
@@ -119,23 +136,21 @@ export function ArtistBio() {
             isVerified={profile.is_verified || false}
             coverUrl={profile.cover_url}
             avatarUrl={profile.avatar_url}
-            avatarInitials="MO"
+            avatarInitials={initials}
             onToggleCustomizer={() => setShowCustomizer(!showCustomizer)}
           />
 
           <div className="relative px-5 pb-10 sm:px-8">
-            <Socials socials={socials} />       {/* <-- Conectado a Supabase */}
-            
+            <Socials socials={socials} />
+
             <div className="mt-8 space-y-8">
-              {/* Le pasamos el release real traído de Supabase */}
               {latestRelease && <ReleasePlayer release={latestRelease} />}
-              
+
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <ShowsList shows={[]} />
                 <MerchCard merch={undefined} />
               </div>
 
-              {/* Le pasamos el array de links reales traídos de Supabase */}
               <CustomLinks links={customLinks} />
             </div>
 
