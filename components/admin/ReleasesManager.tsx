@@ -20,7 +20,7 @@ export function ReleasesManager({
   setCoverUrl,
   releases,
   onSubmit,
-  onDelete,
+  onToggleActive,
   onToggleFeatured,
 }: {
   releaseTitle: string
@@ -38,11 +38,12 @@ export function ReleasesManager({
   setCoverUrl: (v: string) => void
   releases: Database['public']['Tables']['releases']['Row'][]
   onSubmit: (e: React.FormEvent) => void
-  onDelete: (id: string) => void
+  onToggleActive: (id: string, isActive: boolean) => Promise<void>
   onToggleFeatured: (id: string, isFeatured: boolean) => Promise<void>
 }) {
   const [uploading, setUploading] = useState(false)
   const [updatingFeaturedId, setUpdatingFeaturedId] = useState<string | null>(null)
+  const [updatingActiveId, setUpdatingActiveId] = useState<string | null>(null)
 
   async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -61,6 +62,15 @@ export function ReleasesManager({
       await onToggleFeatured(id, isFeatured)
     } finally {
       setUpdatingFeaturedId(null)
+    }
+  }
+
+  async function handleToggleActive(id: string, isActive: boolean) {
+    setUpdatingActiveId(id)
+    try {
+      await onToggleActive(id, isActive)
+    } finally {
+      setUpdatingActiveId(null)
     }
   }
 
@@ -167,15 +177,23 @@ export function ReleasesManager({
 
       {/* Existing releases */}
       <div className="space-y-3">
-        <h3 className="text-xs font-mono text-[#a0a0a0]">[ Active releases ]</h3>
+        <h3 className="text-xs font-mono text-[#a0a0a0]">[ Releases ]</h3>
         {releases.map((rel) => (
-          <div key={rel.id} className="flex flex-wrap items-center justify-between gap-3 border border-[#2a2d34] p-3 rounded bg-[#18191c]">
+          <div key={rel.id} className={`flex flex-wrap items-center justify-between gap-3 border border-[#2a2d34] p-3 rounded bg-[#18191c] ${rel.is_active ? '' : 'opacity-60'}`}>
             <div className="flex items-center gap-3">
               {rel.cover_url && (
                 <img src={rel.cover_url} alt={rel.title} className="size-10 rounded object-cover border border-[#2a2d34]" />
               )}
               <div>
-                <p className="text-sm font-bold text-white">{rel.title} <span className="text-xs text-[#a0a0a0] font-mono font-normal">({rel.release_date || rel.year})</span></p>
+                <p className="text-sm font-bold text-white">
+                  {rel.title}{' '}
+                  <span className="text-xs text-[#a0a0a0] font-mono font-normal">({rel.release_date || rel.year})</span>
+                  {!rel.is_active && (
+                    <span className="ml-2 rounded border border-[#a0a0a0]/30 px-1.5 py-0.5 text-[10px] font-mono font-normal text-[#a0a0a0]">
+                      Hidden
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs text-[#a0a0a0] uppercase font-mono">{rel.type}</p>
               </div>
             </div>
@@ -191,10 +209,11 @@ export function ReleasesManager({
               </button>
               <button
                 type="button"
-                onClick={() => onDelete(rel.id)}
-                className="text-xs font-mono text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-1 rounded transition"
+                onClick={() => void handleToggleActive(rel.id, !rel.is_active)}
+                disabled={updatingActiveId !== null}
+                className={`text-xs font-mono border px-2 py-1 rounded transition disabled:opacity-50 ${rel.is_active ? 'text-red-400 hover:text-red-300 border-red-900/50' : 'text-green-400 hover:text-green-300 border-green-900/50'}`}
               >
-                Hide
+                {rel.is_active ? 'Hide' : 'Show'}
               </button>
             </div>
           </div>

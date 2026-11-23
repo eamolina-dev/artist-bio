@@ -56,7 +56,6 @@ export default function AdminPage() {
         .from('releases')
         .select('*')
         .eq('profile_id', profileData.id)
-        .eq('is_active', true)
         .order('created_at', { ascending: false })
 
       if (releasesData) setReleases(sortReleases(releasesData))
@@ -205,19 +204,25 @@ export default function AdminPage() {
     }
   }
 
-  async function handleDeleteRelease(id: string) {
-    if (!confirm('Hide this release?')) return
+  async function handleToggleReleaseActive(id: string, isActive: boolean) {
+    if (!profile) return
+    if (!isActive && !confirm('Hide this release?')) return
 
     const { error } = await supabase
       .from('releases')
-      .update({ is_active: false })
+      .update({ is_active: isActive })
+      .eq('profile_id', profile.id)
       .eq('id', id)
 
     if (error) {
       console.error(error)
-      alert('Could not hide the release.')
+      alert(isActive ? 'Could not show the release.' : 'Could not hide the release.')
     } else {
-      setReleases(releases.filter((r) => r.id !== id))
+      setReleases((currentReleases) =>
+        currentReleases.map((release) =>
+          release.id === id ? { ...release, is_active: isActive } : release,
+        ),
+      )
     }
   }
 
@@ -426,7 +431,7 @@ export default function AdminPage() {
           setCoverUrl={setCoverUrl}
           releases={releases}
           onSubmit={handleAddRelease}
-          onDelete={handleDeleteRelease}
+          onToggleActive={handleToggleReleaseActive}
           onToggleFeatured={handleToggleFeaturedRelease}
         />
       )}
