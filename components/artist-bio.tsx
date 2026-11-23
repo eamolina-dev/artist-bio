@@ -9,6 +9,7 @@ import { ReleasePlayer } from './release-player'
 import { ShowsList } from './shows-list'
 import { MerchCard } from './merch-card'
 import { CustomLinks } from './custom-links'
+import { sortReleases } from '@/lib/utils'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 type Release = Database['public']['Tables']['releases']['Row']
@@ -60,7 +61,7 @@ export function ArtistBio({ slug }: ArtistBioProps) {
             .eq('is_active', true)
             .order('created_at', { ascending: false })
 
-          if (releasesData) setReleases(releasesData)
+          if (releasesData) setReleases(sortReleases(releasesData))
 
           // 3. Load active custom links
           const { data: linksData } = await supabase
@@ -107,8 +108,14 @@ export function ArtistBio({ slug }: ArtistBioProps) {
     )
   }
 
-  // Use the first release as the latest release for the player
-  const latestRelease = releases[0] || null
+  const chronologicalReleases = sortReleases(releases)
+  const featuredRelease =
+    chronologicalReleases.find((release) => release.is_featured === true) ||
+    chronologicalReleases[0] ||
+    null
+  const otherReleases = featuredRelease
+    ? chronologicalReleases.filter((release) => release.id !== featuredRelease.id)
+    : []
 
   // Generate initials from the artist name
   const initials = profile.name
@@ -144,7 +151,64 @@ export function ArtistBio({ slug }: ArtistBioProps) {
             <Socials socials={socials} />
 
             <div className="mt-8 space-y-8">
-              {latestRelease && <ReleasePlayer release={latestRelease} />}
+              {featuredRelease && <ReleasePlayer release={featuredRelease} />}
+
+              {otherReleases.length > 0 && (
+                <section aria-label="More releases" className="space-y-3">
+                  <h2 className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#9299a1]">
+                    More releases
+                  </h2>
+                  <div className="divide-y divide-white/[0.06] rounded-2xl border border-white/[0.08] bg-[#121316]/40 px-4">
+                    {otherReleases.map((release) => (
+                      <article key={release.id} className="flex items-center gap-3 py-3">
+                        {release.cover_url ? (
+                          <img
+                            src={release.cover_url}
+                            alt=""
+                            className="size-12 shrink-0 rounded-lg border border-white/10 object-cover"
+                          />
+                        ) : (
+                          <div className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] font-mono text-[9px] text-[#9299a1]">
+                            MUSIC
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate text-sm font-medium text-[#e9e5df]">
+                            {release.title}
+                          </h3>
+                          <p className="text-xs capitalize text-[#9299a1]">
+                            {[release.type, release.release_date || release.year]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3 font-mono text-[10px]">
+                          {release.spotify_url && (
+                            <a
+                              href={release.spotify_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#e2d9cc] hover:text-white"
+                            >
+                              Spotify
+                            </a>
+                          )}
+                          {release.apple_url && (
+                            <a
+                              href={release.apple_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#e2d9cc] hover:text-white"
+                            >
+                              Apple Music
+                            </a>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <ShowsList shows={[]} />

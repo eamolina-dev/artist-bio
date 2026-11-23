@@ -33,7 +33,7 @@ export function ReleasePlayer({ release }: ReleasePlayerProps) {
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-[#9299a1]">
           <Disc3 className="size-3.5 text-[#e2d9cc]" />
-          <span>Latest Release · {release.type} ({release.year})</span>
+          <span>Featured Release · {release.type} ({release.release_date || release.year})</span>
         </div>
         {release.apple_url && (
           <a
@@ -73,7 +73,7 @@ export function ReleasePlayer({ release }: ReleasePlayerProps) {
           )}
           <div className="flex-1 min-w-0">
             <h3 className="truncate font-medium text-[#e9e5df]">{release.title}</h3>
-            <p className="text-xs text-[#9299a1] capitalize">{release.type} · {release.year}</p>
+            <p className="text-xs text-[#9299a1] capitalize">{release.type} · {release.release_date || release.year}</p>
           </div>
           {release.spotify_url && (
             <a

@@ -30,7 +30,7 @@ export function SocialsManager({
         <h2 className="text-xs text-[#a0a0a0] font-bold uppercase tracking-wider mb-2">Add social profile</h2>
         
         <div>
-          <label className="block text-xs text-[#a0a0a0] mb-1">Plataforma</label>
+          <label className="block text-xs text-[#a0a0a0] mb-1">Platform</label>
           <select
             value={platform}
             onChange={(e) => setPlatform(e.target.value)}
@@ -41,6 +41,9 @@ export function SocialsManager({
             <option value="soundcloud">SoundCloud</option>
             <option value="instagram">Instagram</option>
             <option value="youtube">YouTube</option>
+            <option value="bandcamp">Bandcamp</option>
+            <option value="beatport">Beatport</option>
+            <option value="tiktok">TikTok</option>
           </select>
         </div>
 

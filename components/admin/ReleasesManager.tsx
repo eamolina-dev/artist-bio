@@ -11,15 +11,17 @@ export function ReleasesManager({
   setReleaseType,
   releaseYear,
   setReleaseYear,
+  releaseDate,
+  setReleaseDate,
   spotifyUrl,
   setSpotifyUrl,
   appleUrl,
   setAppleUrl,
-  coverUrl,
   setCoverUrl,
   releases,
   onSubmit,
   onDelete,
+  onToggleFeatured,
 }: {
   releaseTitle: string
   setReleaseTitle: (v: string) => void
@@ -27,17 +29,20 @@ export function ReleasesManager({
   setReleaseType: (v: string) => void
   releaseYear: string
   setReleaseYear: (v: string) => void
+  releaseDate: string
+  setReleaseDate: (v: string) => void
   spotifyUrl: string
   setSpotifyUrl: (v: string) => void
   appleUrl: string
   setAppleUrl: (v: string) => void
-  coverUrl: string
   setCoverUrl: (v: string) => void
   releases: Database['public']['Tables']['releases']['Row'][]
   onSubmit: (e: React.FormEvent) => void
   onDelete: (id: string) => void
+  onToggleFeatured: (id: string, isFeatured: boolean) => Promise<void>
 }) {
   const [uploading, setUploading] = useState(false)
+  const [updatingFeaturedId, setUpdatingFeaturedId] = useState<string | null>(null)
 
   async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -48,6 +53,15 @@ export function ReleasesManager({
     if (url) setCoverUrl(url)
     else alert('Could not upload the release artwork.')
     setUploading(false)
+  }
+
+  async function handleToggleFeatured(id: string, isFeatured: boolean) {
+    setUpdatingFeaturedId(id)
+    try {
+      await onToggleFeatured(id, isFeatured)
+    } finally {
+      setUpdatingFeaturedId(null)
+    }
   }
 
   return (
@@ -68,7 +82,7 @@ export function ReleasesManager({
             />
           </div>
           <div>
-            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">TIPO</label>
+            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">TYPE</label>
             <select
               value={releaseType}
               onChange={(e) => setReleaseType(e.target.value)}
@@ -92,6 +106,21 @@ export function ReleasesManager({
               className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-white"
             />
           </div>
+          <div>
+            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">RELEASE DATE</label>
+            <input
+              type="date"
+              value={releaseDate}
+              onChange={(e) => {
+                setReleaseDate(e.target.value)
+                if (e.target.value) setReleaseYear(e.target.value.slice(0, 4))
+              }}
+              className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-white"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-mono text-[#a0a0a0] mb-1">COVER ART</label>
             <input
@@ -140,22 +169,34 @@ export function ReleasesManager({
       <div className="space-y-3">
         <h3 className="text-xs font-mono text-[#a0a0a0]">[ Active releases ]</h3>
         {releases.map((rel) => (
-          <div key={rel.id} className="flex items-center justify-between border border-[#2a2d34] p-3 rounded bg-[#18191c]">
+          <div key={rel.id} className="flex flex-wrap items-center justify-between gap-3 border border-[#2a2d34] p-3 rounded bg-[#18191c]">
             <div className="flex items-center gap-3">
               {rel.cover_url && (
                 <img src={rel.cover_url} alt={rel.title} className="size-10 rounded object-cover border border-[#2a2d34]" />
               )}
               <div>
-                <p className="text-sm font-bold text-white">{rel.title} <span className="text-xs text-[#a0a0a0] font-mono font-normal">({rel.year})</span></p>
+                <p className="text-sm font-bold text-white">{rel.title} <span className="text-xs text-[#a0a0a0] font-mono font-normal">({rel.release_date || rel.year})</span></p>
                 <p className="text-xs text-[#a0a0a0] uppercase font-mono">{rel.type}</p>
               </div>
             </div>
-            <button
-              onClick={() => onDelete(rel.id)}
-              className="text-xs font-mono text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-1 rounded transition"
-            >
-              Hide
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void handleToggleFeatured(rel.id, !rel.is_featured)}
+                disabled={updatingFeaturedId !== null}
+                aria-pressed={rel.is_featured === true}
+                className="text-xs font-mono text-[#e2d9cc] hover:text-white border border-[#e2d9cc]/30 px-2 py-1 rounded transition disabled:opacity-50"
+              >
+                {rel.is_featured ? '★ Featured' : '☆ Pin as featured'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(rel.id)}
+                className="text-xs font-mono text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-1 rounded transition"
+              >
+                Hide
+              </button>
+            </div>
           </div>
         ))}
       </div>

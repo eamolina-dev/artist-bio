@@ -8,6 +8,7 @@ import { ReleasesManager } from '@/components/admin/ReleasesManager'
 import { LinksManager } from '@/components/admin/LinksManager'
 import { SocialsManager } from '@/components/admin/SocialsManager'
 import { useRouter } from 'next/navigation'
+import { sortReleases } from '@/lib/utils'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'releases' | 'links' | 'socials'>('profile')
@@ -20,6 +21,7 @@ export default function AdminPage() {
   const [releaseTitle, setReleaseTitle] = useState('')
   const [releaseType, setReleaseType] = useState('single')
   const [releaseYear, setReleaseYear] = useState('2026')
+  const [releaseDate, setReleaseDate] = useState('')
   const [spotifyUrl, setSpotifyUrl] = useState('')
   const [appleUrl, setAppleUrl] = useState('')
   const [coverUrl, setCoverUrl] = useState('')
@@ -57,7 +59,7 @@ export default function AdminPage() {
         .eq('is_active', true)
         .order('created_at', { ascending: false })
 
-      if (releasesData) setReleases(releasesData)
+      if (releasesData) setReleases(sortReleases(releasesData))
 
       // Load custom links
       const { data: linksData } = await supabase
@@ -143,15 +145,17 @@ export default function AdminPage() {
           title: releaseTitle,
           type: releaseType,
           year: releaseYear,
+          release_date: releaseDate || null,
           spotify_url: spotifyUrl,
           apple_url: appleUrl,
           cover_url: coverUrl,
-          is_featured: true,
+          is_featured: false,
         },
       ])
       if (error) throw error
       alert('Release added.')
       setReleaseTitle('')
+      setReleaseDate('')
       setSpotifyUrl('')
       setAppleUrl('')
       setCoverUrl('')
@@ -159,6 +163,45 @@ export default function AdminPage() {
     } catch (err) {
       console.error(err)
       alert('Could not add release.')
+    }
+  }
+
+  async function handleToggleFeaturedRelease(id: string, isFeatured: boolean) {
+    if (!profile) return
+
+    try {
+      if (isFeatured) {
+        const { error: clearError } = await supabase
+          .from('releases')
+          .update({ is_featured: false })
+          .eq('profile_id', profile.id)
+          .neq('id', id)
+
+        if (clearError) throw clearError
+      }
+
+      const { error } = await supabase
+        .from('releases')
+        .update({ is_featured: isFeatured })
+        .eq('profile_id', profile.id)
+        .eq('id', id)
+
+      if (error) throw error
+
+      setReleases((currentReleases) =>
+        currentReleases.map((release) => ({
+          ...release,
+          is_featured:
+            release.id === id
+              ? isFeatured
+              : isFeatured
+                ? false
+                : release.is_featured,
+        })),
+      )
+    } catch (err) {
+      console.error(err)
+      alert('Could not update the featured release.')
     }
   }
 
@@ -374,15 +417,17 @@ export default function AdminPage() {
           setReleaseType={setReleaseType}
           releaseYear={releaseYear}
           setReleaseYear={setReleaseYear}
+          releaseDate={releaseDate}
+          setReleaseDate={setReleaseDate}
           spotifyUrl={spotifyUrl}
           setSpotifyUrl={setSpotifyUrl}
           appleUrl={appleUrl}
           setAppleUrl={setAppleUrl}
-          coverUrl={coverUrl}
           setCoverUrl={setCoverUrl}
           releases={releases}
           onSubmit={handleAddRelease}
           onDelete={handleDeleteRelease}
+          onToggleFeatured={handleToggleFeaturedRelease}
         />
       )}
 
