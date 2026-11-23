@@ -20,7 +20,7 @@ export default function AdminPage() {
   // Estados Releases
   const [releaseTitle, setReleaseTitle] = useState('')
   const [releaseType, setReleaseType] = useState('single')
-  const [releaseYear, setReleaseYear] = useState('2026')
+  // const [releaseYear, setReleaseYear] = useState('2026')
   const [releaseDate, setReleaseDate] = useState('')
   const [spotifyUrl, setSpotifyUrl] = useState('')
   const [appleUrl, setAppleUrl] = useState('')
@@ -143,7 +143,9 @@ export default function AdminPage() {
           profile_id: profile.id,
           title: releaseTitle,
           type: releaseType,
-          year: releaseYear,
+          // year: releaseYear,
+          // year: releaseDate ? releaseDate.slice(0, 4) : new Date().getFullYear().toString(),
+          year: releaseDate ? releaseDate.slice(0, 4) : '',
           release_date: releaseDate || null,
           spotify_url: spotifyUrl,
           apple_url: appleUrl,
@@ -420,8 +422,8 @@ export default function AdminPage() {
           setReleaseTitle={setReleaseTitle}
           releaseType={releaseType}
           setReleaseType={setReleaseType}
-          releaseYear={releaseYear}
-          setReleaseYear={setReleaseYear}
+          // releaseYear={releaseYear}
+          // setReleaseYear={setReleaseYear}
           releaseDate={releaseDate}
           setReleaseDate={setReleaseDate}
           spotifyUrl={spotifyUrl}

@@ -9,8 +9,8 @@ export function ReleasesManager({
   setReleaseTitle,
   releaseType,
   setReleaseType,
-  releaseYear,
-  setReleaseYear,
+  // releaseYear,
+  // setReleaseYear,
   releaseDate,
   setReleaseDate,
   spotifyUrl,
@@ -27,8 +27,8 @@ export function ReleasesManager({
   setReleaseTitle: (v: string) => void
   releaseType: string
   setReleaseType: (v: string) => void
-  releaseYear: string
-  setReleaseYear: (v: string) => void
+  // releaseYear: string
+  // setReleaseYear: (v: string) => void
   releaseDate: string
   setReleaseDate: (v: string) => void
   spotifyUrl: string
@@ -108,29 +108,14 @@ export function ReleasesManager({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">YEAR</label>
-            <input
-              type="text"
-              value={releaseYear}
-              onChange={(e) => setReleaseYear(e.target.value)}
-              className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-white"
-            />
-          </div>
-          <div>
             <label className="block text-xs font-mono text-[#a0a0a0] mb-1">RELEASE DATE</label>
             <input
               type="date"
               value={releaseDate}
-              onChange={(e) => {
-                setReleaseDate(e.target.value)
-                if (e.target.value) setReleaseYear(e.target.value.slice(0, 4))
-              }}
+              onChange={(e) => setReleaseDate(e.target.value)}
               className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-white"
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-mono text-[#a0a0a0] mb-1">COVER ART</label>
             <input
@@ -143,6 +128,20 @@ export function ReleasesManager({
             {uploading && <span className="text-xs text-yellow-400 font-mono">Uploading...</span>}
           </div>
         </div>
+
+        {/* <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">COVER ART</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleCoverChange}
+              disabled={uploading}
+              className="text-xs text-[#a0a0a0] file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-mono file:bg-white file:text-black hover:file:bg-gray-200 cursor-pointer"
+            />
+            {uploading && <span className="text-xs text-yellow-400 font-mono">Uploading...</span>}
+          </div>
+        </div> */}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
