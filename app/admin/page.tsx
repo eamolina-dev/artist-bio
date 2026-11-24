@@ -16,6 +16,7 @@ export default function AdminPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [profile, setProfile] = useState<Database['public']['Tables']['profiles']['Row'] | null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
 
   // Estados Releases
   const [releaseTitle, setReleaseTitle] = useState('')
@@ -124,7 +125,7 @@ export default function AdminPage() {
   }
 
   async function handleLogout() {
-    setLoading(true)
+    setLoggingOut(true)
     await supabase.auth.signOut()
     setUserId(null)
     setProfile(null)
@@ -309,6 +310,14 @@ export default function AdminPage() {
     } else {
       setSocials(socials.filter((s) => s.id !== id))
     }
+  }
+
+  if (loggingOut) {
+    return (
+      <div className="min-h-screen bg-[#121316] text-[#e9e5df] flex items-center justify-center font-mono text-sm">
+        Signing out...
+      </div>
+    )
   }
 
   if (loading) {
