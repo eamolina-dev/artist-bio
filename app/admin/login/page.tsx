@@ -83,56 +83,61 @@ function LoginForm() {
       }
 
       setLoading(true)
-      const { error: lookupError, data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('slug', cleanSlug)
-        .maybeSingle()
+      try {
+        const { error: lookupError, data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('slug', cleanSlug)
+          .maybeSingle()
 
-      if (lookupError) {
-        setError('Could not check page URL availability. Please try again.')
+        if (lookupError) {
+          setError('Could not check page URL availability. Please try again.')
+          return
+        }
+
+        if (existingProfile) {
+          setSlugAvailability('taken')
+          setError('That page URL is already taken. Try another one.')
+          return
+        }
+
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: {
+            data: { name: cleanName, slug: cleanSlug },
+            emailRedirectTo: `${window.location.origin}/admin/login`,
+          },
+        })
+
+        if (signUpError) {
+          setError(signUpError.message)
+          return
+        }
+
+        setMessage('Account created. Check your email to confirm it, then sign in.')
+        setIsSignUp(false)
+      } finally {
         setLoading(false)
-        return
       }
-
-      if (existingProfile) {
-        setSlugAvailability('taken')
-        setError('That page URL is already taken. Try another one.')
-        setLoading(false)
-        return
-      }
-
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password,
-        options: {
-          data: { name: cleanName, slug: cleanSlug },
-          emailRedirectTo: `${window.location.origin}/admin/login`,
-        },
-      })
-
-      if (signUpError) {
-        setError(signUpError.message)
-        setLoading(false)
-        return
-      }
-
-      setMessage('Account created. Check your email to confirm it, then sign in.')
-      setIsSignUp(false)
-      setLoading(false)
     } else {
       setLoading(true)
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      })
+      try {
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        })
 
-      if (authError) {
-        setError(authError.message)
+        if (authError) {
+          setError(authError.message)
+          return
+        }
+
         setLoading(false)
-      } else {
         router.push('/admin')
         router.refresh()
+      } finally {
+        setLoading(false)
       }
     }
   }

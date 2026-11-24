@@ -127,7 +127,7 @@ export default function AdminPage() {
     await supabase.auth.signOut()
     setUserId(null)
     setProfile(null)
-    router.push('/admin/login')
+    router.replace('/admin/login')
     router.refresh()
   }
 
