@@ -95,6 +95,7 @@ export default function AdminPage() {
     let cancelled = false
 
     async function checkAuthAndLoad() {
+      setLoggingOut(false)
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         router.replace('/admin/login')
@@ -126,11 +127,16 @@ export default function AdminPage() {
 
   async function handleLogout() {
     setLoggingOut(true)
-    await supabase.auth.signOut()
-    setUserId(null)
-    setProfile(null)
-    router.replace('/admin/login')
-    router.refresh()
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('Error signing out:', err)
+    } finally {
+      setUserId(null)
+      setProfile(null)
+      router.replace('/admin/login')
+      router.refresh()
+    }
   }
 
   // --- Handlers Releases ---
