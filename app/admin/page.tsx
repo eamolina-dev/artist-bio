@@ -124,6 +124,7 @@ export default function AdminPage() {
   }
 
   async function handleLogout() {
+    setLoading(true)
     await supabase.auth.signOut()
     setUserId(null)
     setProfile(null)
