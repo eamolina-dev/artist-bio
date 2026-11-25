@@ -100,6 +100,26 @@ export default function AdminPage() {
     }
   }, [loadAdminData, userId])
 
+  async function handleProfileImageUpload(field: 'avatar_url' | 'cover_url', url: string) {
+    if (!profile) throw new Error('Profile is not available.')
+
+    const updatedImage: Pick<Database['public']['Tables']['profiles']['Update'], 'avatar_url' | 'cover_url'> =
+      field === 'avatar_url' ? { avatar_url: url } : { cover_url: url }
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updatedImage)
+      .eq('id', profile.id)
+      .select('id')
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) throw new Error('Profile image was not saved.')
+
+    setProfile((currentProfile) =>
+      currentProfile ? { ...currentProfile, [field]: url } : currentProfile,
+    )
+  }
+
   useEffect(() => {
     let cancelled = false
 
@@ -249,6 +269,28 @@ export default function AdminPage() {
           release.id === id ? { ...release, is_active: isActive } : release,
         ),
       )
+    }
+  }
+
+  async function handleDeleteRelease(id: string) {
+    if (!profile || !confirm('Delete this release permanently?')) return
+
+    try {
+      const { data, error } = await supabase
+        .from('releases')
+        .delete()
+        .eq('profile_id', profile.id)
+        .eq('id', id)
+        .select('id')
+        .maybeSingle()
+
+      if (error) throw error
+      if (!data) throw new Error('Release was not deleted.')
+
+      setReleases((currentReleases) => currentReleases.filter((release) => release.id !== id))
+    } catch (err) {
+      console.error(err)
+      alert('Could not delete the release.')
     }
   }
 
@@ -429,6 +471,7 @@ export default function AdminPage() {
         <ProfileForm
           key={profile.id}
           profile={profile}
+          onImageUpload={handleProfileImageUpload}
           onSave={async (updatedFields) => {
             if (!profile) return
 
@@ -467,6 +510,7 @@ export default function AdminPage() {
           onSubmit={handleAddRelease}
           onToggleActive={handleToggleReleaseActive}
           onToggleFeatured={handleToggleFeaturedRelease}
+          onDelete={handleDeleteRelease}
         />
       )}
 

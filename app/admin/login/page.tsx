@@ -142,6 +142,36 @@ function LoginForm() {
     }
   }
 
+  async function handlePasswordReset() {
+    setError(null)
+    setMessage(null)
+    const cleanEmail = email.trim()
+
+    if (!cleanEmail) {
+      setError('Enter your email address first.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: `${window.location.origin}/admin/reset-password`,
+      })
+
+      if (resetError) {
+        setError(resetError.message)
+        return
+      }
+
+      setMessage('Check your email for a password reset link.')
+    } catch (err) {
+      console.error(err)
+      setError('Could not send the password reset email. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const slugStatusText = {
     idle: '',
     checking: 'Checking availability...',
@@ -258,6 +288,16 @@ function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
             />
+            {!isSignUp && (
+              <button
+                type="button"
+                onClick={() => void handlePasswordReset()}
+                disabled={loading}
+                className="mt-2 text-[10px] text-[#a0a0a0] hover:text-white transition cursor-pointer disabled:opacity-50"
+              >
+                Forgot password?
+              </button>
+            )}
           </div>
 
           <button

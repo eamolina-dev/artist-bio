@@ -22,9 +22,11 @@ function sanitizeSlug(value: string) {
 export function ProfileForm({
   profile,
   onSave,
+  onImageUpload,
 }: {
   profile: Profile
   onSave: (updatedFields: ProfileUpdate) => Promise<void>
+  onImageUpload: (field: 'avatar_url' | 'cover_url', url: string) => Promise<void>
 }) {
   const [name, setName] = useState(profile?.name || '')
   const [slug, setSlug] = useState(profile.slug)
@@ -35,6 +37,8 @@ export function ProfileForm({
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
+  const [avatarFeedback, setAvatarFeedback] = useState('')
+  const [coverFeedback, setCoverFeedback] = useState('')
   const [saving, setSaving] = useState(false)
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -42,10 +46,24 @@ export function ProfileForm({
     if (!file) return
 
     setUploadingAvatar(true)
-    const url = await uploadImage(file, 'avatars')
-    if (url) setAvatarUrl(url)
-    else alert('Could not upload the profile photo.')
-    setUploadingAvatar(false)
+    setAvatarFeedback('')
+    try {
+      const url = await uploadImage(file, 'avatars')
+      if (!url) {
+        alert('Could not upload the profile photo.')
+        return
+      }
+
+      await onImageUpload('avatar_url', url)
+      setAvatarUrl(url)
+      setAvatarFeedback('Avatar updated')
+      window.setTimeout(() => setAvatarFeedback(''), 2000)
+    } catch (err) {
+      console.error(err)
+      alert('Could not update the profile photo.')
+    } finally {
+      setUploadingAvatar(false)
+    }
   }
 
   async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -53,10 +71,24 @@ export function ProfileForm({
     if (!file) return
 
     setUploadingCover(true)
-    const url = await uploadImage(file, 'covers')
-    if (url) setCoverUrl(url)
-    else alert('Could not upload the cover image.')
-    setUploadingCover(false)
+    setCoverFeedback('')
+    try {
+      const url = await uploadImage(file, 'covers')
+      if (!url) {
+        alert('Could not upload the cover image.')
+        return
+      }
+
+      await onImageUpload('cover_url', url)
+      setCoverUrl(url)
+      setCoverFeedback('Cover updated')
+      window.setTimeout(() => setCoverFeedback(''), 2000)
+    } catch (err) {
+      console.error(err)
+      alert('Could not update the cover image.')
+    } finally {
+      setUploadingCover(false)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -168,6 +200,7 @@ export function ProfileForm({
             />
           </div>
           {uploadingAvatar && <p className="text-xs font-mono text-yellow-400 mt-1">Uploading profile photo...</p>}
+          {avatarFeedback && <p className="text-xs font-mono text-emerald-400 mt-1">{avatarFeedback}</p>}
         </div>
 
         {/* Cover Upload */}
@@ -186,6 +219,7 @@ export function ProfileForm({
             />
           </div>
           {uploadingCover && <p className="text-xs font-mono text-yellow-400 mt-1">Uploading cover image...</p>}
+          {coverFeedback && <p className="text-xs font-mono text-emerald-400 mt-1">{coverFeedback}</p>}
         </div>
       </div>
 

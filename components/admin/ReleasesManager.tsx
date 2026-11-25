@@ -22,6 +22,7 @@ export function ReleasesManager({
   onSubmit,
   onToggleActive,
   onToggleFeatured,
+  onDelete,
 }: {
   releaseTitle: string
   setReleaseTitle: (v: string) => void
@@ -40,10 +41,12 @@ export function ReleasesManager({
   onSubmit: (e: React.FormEvent) => void
   onToggleActive: (id: string, isActive: boolean) => Promise<void>
   onToggleFeatured: (id: string, isFeatured: boolean) => Promise<void>
+  onDelete: (id: string) => Promise<void>
 }) {
   const [uploading, setUploading] = useState(false)
   const [updatingFeaturedId, setUpdatingFeaturedId] = useState<string | null>(null)
   const [updatingActiveId, setUpdatingActiveId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -71,6 +74,15 @@ export function ReleasesManager({
       await onToggleActive(id, isActive)
     } finally {
       setUpdatingActiveId(null)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setDeletingId(id)
+    try {
+      await onDelete(id)
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -214,6 +226,14 @@ export function ReleasesManager({
                 className={`text-xs font-mono border px-2 py-1 rounded transition disabled:opacity-50 ${rel.is_active ? 'text-red-400 hover:text-red-300 border-red-900/50' : 'text-green-400 hover:text-green-300 border-green-900/50'}`}
               >
                 {rel.is_active ? 'Hide' : 'Show'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDelete(rel.id)}
+                disabled={deletingId !== null}
+                className="text-xs font-mono text-red-400 hover:text-red-300 border border-red-900/50 px-2 py-1 rounded transition disabled:opacity-50"
+              >
+                {deletingId === rel.id ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
