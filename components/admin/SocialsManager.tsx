@@ -6,14 +6,14 @@ import { Database } from '@/types/supabase'
 type Social = Database['public']['Tables']['socials']['Row']
 
 const SOCIAL_PLATFORMS = [
-  { id: 'spotify', label: 'Spotify', placeholder: 'https://open.spotify.com/artist/...' },
-  { id: 'apple', label: 'Apple Music', placeholder: 'https://music.apple.com/artist/...' },
-  { id: 'soundcloud', label: 'SoundCloud', placeholder: 'https://soundcloud.com/...' },
-  { id: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/...' },
-  { id: 'youtube', label: 'YouTube', placeholder: 'https://youtube.com/@...' },
-  { id: 'bandcamp', label: 'Bandcamp', placeholder: 'https://yourname.bandcamp.com' },
-  { id: 'beatport', label: 'Beatport', placeholder: 'https://www.beatport.com/artist/...' },
-  { id: 'tiktok', label: 'TikTok', placeholder: 'https://www.tiktok.com/@...' },
+  { id: 'spotify', label: 'Spotify', placeholder: 'https://open.spotify.com/artist/...', domains: ['spotify.com'] },
+  { id: 'apple', label: 'Apple Music', placeholder: 'https://music.apple.com/artist/...', domains: ['apple.com'] },
+  { id: 'soundcloud', label: 'SoundCloud', placeholder: 'https://soundcloud.com/...', domains: ['soundcloud.com'] },
+  { id: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/...', domains: ['instagram.com'] },
+  { id: 'youtube', label: 'YouTube', placeholder: 'https://youtube.com/@...', domains: ['youtube.com', 'youtu.be'] },
+  { id: 'bandcamp', label: 'Bandcamp', placeholder: 'https://yourname.bandcamp.com', domains: ['bandcamp.com'] },
+  { id: 'beatport', label: 'Beatport', placeholder: 'https://www.beatport.com/artist/...', domains: ['beatport.com'] },
+  { id: 'tiktok', label: 'TikTok', placeholder: 'https://www.tiktok.com/@...', domains: ['tiktok.com'] },
 ] as const
 
 interface SocialsManagerProps {
@@ -38,9 +38,32 @@ export function SocialsManager({
   const currentPlatform =
     SOCIAL_PLATFORMS.find((p) => p.id === platform) ?? SOCIAL_PLATFORMS[0]
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+
+    const validDomain = (value: string) => {
+      try {
+        const hostname = new URL(value).hostname.toLowerCase()
+        return currentPlatform.domains.some(
+          (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+        )
+      } catch {
+        return false
+      }
+    }
+
+    if (socialUrl && !validDomain(socialUrl)) {
+      const expectedDomains = currentPlatform.domains.join(' or ')
+      alert(`${currentPlatform.label} URL must belong to ${expectedDomains}.`)
+      return
+    }
+
+    onSubmit(e)
+  }
+
   return (
     <div className="space-y-8 font-mono text-sm">
-      <form onSubmit={onSubmit} className="space-y-4 border-b border-[#2a2d34] pb-6">
+      <form onSubmit={handleSubmit} className="space-y-4 border-b border-[#2a2d34] pb-6">
         <h2 className="text-xs text-[#a0a0a0] font-bold uppercase tracking-wider mb-2">
           Add social profile
         </h2>

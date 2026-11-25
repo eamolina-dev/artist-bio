@@ -10,6 +10,15 @@ import { SocialsManager } from '@/components/admin/SocialsManager'
 import { useRouter } from 'next/navigation'
 import { sortReleases } from '@/lib/utils'
 
+function isUrlFromDomain(value: string, domain: string) {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase()
+    return hostname === domain || hostname.endsWith(`.${domain}`)
+  } catch {
+    return false
+  }
+}
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'releases' | 'links' | 'socials'>('profile')
   const [loading, setLoading] = useState(true)
@@ -144,6 +153,15 @@ export default function AdminPage() {
     e.preventDefault()
     if (!profile) return
     if (!releaseTitle) return alert('A release title is required.')
+    if (!releaseDate) return alert('Release date is required.')
+
+    if (spotifyUrl && !isUrlFromDomain(spotifyUrl, 'spotify.com')) {
+      return alert('Spotify URL must belong to spotify.com.')
+    }
+
+    if (appleUrl && !isUrlFromDomain(appleUrl, 'apple.com')) {
+      return alert('Apple Music URL must belong to apple.com.')
+    }
 
     try {
       const { error } = await supabase.from('releases').insert([
@@ -151,10 +169,8 @@ export default function AdminPage() {
           profile_id: profile.id,
           title: releaseTitle,
           type: releaseType,
-          // year: releaseYear,
-          // year: releaseDate ? releaseDate.slice(0, 4) : new Date().getFullYear().toString(),
-          year: releaseDate ? releaseDate.slice(0, 4) : '',
-          release_date: releaseDate || null,
+          year: releaseDate.slice(0, 4),
+          release_date: releaseDate,
           spotify_url: spotifyUrl,
           apple_url: appleUrl,
           cover_url: coverUrl,
@@ -396,16 +412,16 @@ export default function AdminPage() {
           [ Releases ({releases.length}) ]
         </button>
         <button
-          onClick={() => setActiveTab('links')}
-          className={`px-3 py-1.5 rounded cursor-pointer ${activeTab === 'links' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
-        >
-          [ Links ({customLinks.length}) ]
-        </button>
-        <button
           onClick={() => setActiveTab('socials')}
           className={`px-3 py-1.5 rounded cursor-pointer ${activeTab === 'socials' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
         >
           [ Socials ({socials.length}) ]
+        </button>
+        <button
+          onClick={() => setActiveTab('links')}
+          className={`px-3 py-1.5 rounded cursor-pointer ${activeTab === 'links' ? 'bg-white text-black font-bold' : 'text-[#a0a0a0] hover:text-white'}`}
+        >
+          [ Links ({customLinks.length}) ]
         </button>
       </div>
 

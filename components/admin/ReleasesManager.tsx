@@ -111,6 +111,7 @@ export function ReleasesManager({
             <label className="block text-xs font-mono text-[#a0a0a0] mb-1">RELEASE DATE</label>
             <input
               type="date"
+              required
               value={releaseDate}
               onChange={(e) => setReleaseDate(e.target.value)}
               className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-white"
