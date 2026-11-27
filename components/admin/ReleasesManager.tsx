@@ -26,10 +26,14 @@ export function ReleasesManager({
   setReleaseUrl,
   isUpcoming,
   setIsUpcoming,
+  coverUrl,
   setCoverUrl,
   releases,
   customLinks,
+  editingId,
   onSubmit,
+  onEdit,
+  onCancelEdit,
   onToggleActive,
   onToggleFeatured,
   onDelete,
@@ -47,20 +51,25 @@ export function ReleasesManager({
   setReleaseUrl: (field: ReleasePlatformField, value: string) => void
   isUpcoming: boolean
   setIsUpcoming: (v: boolean) => void
+  coverUrl: string
   setCoverUrl: (v: string) => void
   releases: Database['public']['Tables']['releases']['Row'][]
   customLinks: Database['public']['Tables']['custom_links']['Row'][]
-  onSubmit: (e: React.FormEvent) => void
+  editingId: string | null
+  onSubmit: (e: React.FormEvent) => void | Promise<void>
+  onEdit: (release: Database['public']['Tables']['releases']['Row']) => void
+  onCancelEdit: () => void
   onToggleActive: (id: string, isActive: boolean) => Promise<void>
   onToggleFeatured: (id: string, isFeatured: boolean) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }) {
   const [uploading, setUploading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [updatingFeaturedId, setUpdatingFeaturedId] = useState<string | null>(null)
   const [updatingActiveId, setUpdatingActiveId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const urls = isUpcoming
       ? []
@@ -84,7 +93,9 @@ export function ReleasesManager({
     const existingUrls = [
       ...customLinks.map((link) => link.url),
       ...releases.flatMap((release) =>
-        RELEASE_PLATFORMS.map(({ field }) => release[field]),
+        release.id === editingId
+          ? []
+          : RELEASE_PLATFORMS.map(({ field }) => release[field]),
       ),
     ].filter((url): url is string => Boolean(url))
     const normalizedUrls = urls.map(({ url }) => normalizeUrl(url))
@@ -96,7 +107,12 @@ export function ReleasesManager({
       return
     }
 
-    onSubmit(e)
+    setSaving(true)
+    try {
+      await onSubmit(e)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -104,10 +120,13 @@ export function ReleasesManager({
     if (!file) return
 
     setUploading(true)
-    const url = await uploadImage(file, 'releases')
-    if (url) setCoverUrl(url)
-    else alert('Could not upload the release artwork.')
-    setUploading(false)
+    try {
+      const url = await uploadImage(file, 'releases')
+      if (url) setCoverUrl(url)
+      else alert('Could not upload the release artwork.')
+    } finally {
+      setUploading(false)
+    }
   }
 
   async function handleToggleFeatured(id: string, isFeatured: boolean) {
@@ -141,7 +160,9 @@ export function ReleasesManager({
     <div className="space-y-6 font-sans">
       {/* New release form */}
       <form onSubmit={handleSubmit} className="space-y-4 border border-[#2a2d34] p-5 rounded-lg bg-[#18191c]">
-        <h2 className="text-sm font-mono text-[#a0a0a0] mb-2">[ New release ]</h2>
+        <h2 className="text-sm font-mono text-[#a0a0a0] mb-2">
+          {editingId ? '[ Edit release ]' : '[ New release ]'}
+        </h2>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -190,6 +211,18 @@ export function ReleasesManager({
               className="text-xs text-[#a0a0a0] file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-mono file:bg-white file:text-black hover:file:bg-gray-200 cursor-pointer"
             />
             {uploading && <span className="text-xs text-yellow-400 font-mono">Uploading...</span>}
+            {coverUrl && (
+              <div className="mt-2 flex items-center gap-2">
+                <img src={coverUrl} alt="Release cover preview" className="size-12 rounded object-cover border border-[#2a2d34]" />
+                <button
+                  type="button"
+                  onClick={() => setCoverUrl('')}
+                  className="text-xs font-mono text-[#a0a0a0] underline underline-offset-2 hover:text-white"
+                >
+                  Remove cover
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -225,12 +258,25 @@ export function ReleasesManager({
           </div>
         )}
 
-        <button
-          type="submit"
-          className="w-full bg-white text-black font-mono text-xs font-bold py-2.5 rounded hover:bg-gray-200 transition cursor-pointer mt-2"
-        >
-          Add release
-        </button>
+        <div className="flex gap-2 mt-2">
+          <button
+            type="submit"
+            disabled={uploading || saving}
+            className="flex-1 bg-white text-black font-mono text-xs font-bold py-2.5 rounded hover:bg-gray-200 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? (editingId ? 'Updating...' : 'Adding...') : editingId ? 'Update release' : 'Add release'}
+          </button>
+          {editingId && (
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              disabled={saving}
+              className="border border-[#2a2d34] px-4 py-2.5 rounded text-xs font-mono text-[#a0a0a0] hover:text-white transition disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </form>
 
       {/* Existing releases */}
@@ -278,6 +324,14 @@ export function ReleasesManager({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onEdit(rel)}
+                disabled={saving || editingId !== null}
+                className="text-xs font-mono text-[#a0a0a0] hover:text-white border border-[#2a2d34] px-2 py-1 rounded transition disabled:opacity-50"
+              >
+                Edit
+              </button>
               <button
                 type="button"
                 onClick={() => void handleToggleFeatured(rel.id, !rel.is_featured)}

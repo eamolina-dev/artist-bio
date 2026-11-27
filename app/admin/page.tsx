@@ -19,6 +19,25 @@ import {
   type ReleasePlatformField,
 } from '@/lib/platforms'
 
+async function getOembedCoverUrl(url: string | null) {
+  if (!url) return null
+
+  try {
+    const response = await fetch('/api/oembed-cover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    })
+    if (!response.ok) return null
+
+    const data: { thumbnail_url?: unknown } = await response.json()
+    return typeof data.thumbnail_url === 'string' ? data.thumbnail_url : null
+  } catch (error) {
+    console.warn('Could not fetch release artwork:', error)
+    return null
+  }
+}
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'releases' | 'links' | 'socials'>('profile')
   const [loading, setLoading] = useState(true)
@@ -36,6 +55,7 @@ export default function AdminPage() {
   const [coverUrl, setCoverUrl] = useState('')
   const [isUpcoming, setIsUpcoming] = useState(false)
   const [releases, setReleases] = useState<Database['public']['Tables']['releases']['Row'][]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   // Estados Links
   const [linkTitle, setLinkTitle] = useState('')
@@ -100,7 +120,7 @@ export default function AdminPage() {
     }
   }, [loadAdminData, userId])
 
-  async function hasDuplicateProfileUrl(urls: string[]) {
+  async function hasDuplicateProfileUrl(urls: string[], excludeReleaseId?: string) {
     if (!profile || urls.length === 0) return false
 
     const { data: profileLinks, error } = await supabase
@@ -112,7 +132,9 @@ export default function AdminPage() {
 
     const existingUrls = [
       ...profileLinks.map((link) => link.url),
-      ...releases.flatMap((release) => RELEASE_PLATFORMS.map(({ field }) => release[field])),
+      ...releases
+        .filter((release) => release.id !== excludeReleaseId)
+        .flatMap((release) => RELEASE_PLATFORMS.map(({ field }) => release[field])),
     ].filter((url): url is string => Boolean(url))
     const normalizedExistingUrls = new Set(existingUrls.map(normalizeUrl))
     return urls.some((url) => normalizedExistingUrls.has(normalizeUrl(url)))
@@ -167,7 +189,35 @@ export default function AdminPage() {
   }
 
   // --- Handlers Releases ---
-  async function handleAddRelease(e: React.FormEvent) {
+  function resetReleaseForm() {
+    setReleaseTitle('')
+    setReleaseType('single')
+    setReleaseDate('')
+    setReleaseUrls(EMPTY_RELEASE_URLS)
+    setCoverUrl('')
+    setIsUpcoming(false)
+    setEditingId(null)
+  }
+
+  function handleEditRelease(release: Database['public']['Tables']['releases']['Row']) {
+    setReleaseTitle(release.title)
+    setReleaseType(release.type ?? 'single')
+    setReleaseDate(release.release_date ?? (release.year ? `${release.year}-01-01` : ''))
+    setReleaseUrls({
+      spotify_url: release.spotify_url ?? '',
+      youtube_url: release.youtube_url ?? '',
+      apple_url: release.apple_url ?? '',
+      soundcloud_url: release.soundcloud_url ?? '',
+      bandcamp_url: release.bandcamp_url ?? '',
+      beatport_url: release.beatport_url ?? '',
+    })
+    setCoverUrl(release.cover_url ?? '')
+    setIsUpcoming(release.is_upcoming)
+    setEditingId(release.id)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function handleSaveRelease(e: React.FormEvent) {
     e.preventDefault()
     if (!profile) return
     if (!releaseTitle.trim()) return alert('A release title is required.')
@@ -196,39 +246,63 @@ export default function AdminPage() {
     }
 
     try {
-      if (await hasDuplicateProfileUrl(urls.map(({ url }) => url))) {
+      if (await hasDuplicateProfileUrl(urls.map(({ url }) => url), editingId ?? undefined)) {
         return alert('This URL has already been added to your links or releases.')
       }
 
-      const { error } = await supabase.from('releases').insert([
-        {
-          profile_id: profile.id,
-          title: releaseTitle.trim(),
-          type: releaseType,
-          year: releaseDate.slice(0, 4),
-          release_date: releaseDate,
-          spotify_url: isUpcoming ? null : releaseUrls.spotify_url.trim() || null,
-          youtube_url: isUpcoming ? null : releaseUrls.youtube_url.trim() || null,
-          apple_url: isUpcoming ? null : releaseUrls.apple_url.trim() || null,
-          soundcloud_url: isUpcoming ? null : releaseUrls.soundcloud_url.trim() || null,
-          bandcamp_url: isUpcoming ? null : releaseUrls.bandcamp_url.trim() || null,
-          beatport_url: isUpcoming ? null : releaseUrls.beatport_url.trim() || null,
-          cover_url: coverUrl,
-          is_featured: false,
-          is_upcoming: isUpcoming,
-        },
-      ])
-      if (error) throw error
-      alert('Release added.')
-      setReleaseTitle('')
-      setReleaseDate('')
-      setReleaseUrls(EMPTY_RELEASE_URLS)
-      setCoverUrl('')
-      setIsUpcoming(false)
-      refreshAdminData()
+      const spotifyUrl = isUpcoming ? null : releaseUrls.spotify_url.trim() || null
+      const youtubeUrl = isUpcoming ? null : releaseUrls.youtube_url.trim() || null
+      const manualCoverUrl = coverUrl.trim()
+      const resolvedCoverUrl = manualCoverUrl || (
+        isUpcoming
+          ? null
+          : await getOembedCoverUrl(spotifyUrl) ?? await getOembedCoverUrl(youtubeUrl)
+      )
+      const releaseFields = {
+        title: releaseTitle.trim(),
+        type: releaseType,
+        year: releaseDate.slice(0, 4),
+        release_date: releaseDate,
+        spotify_url: spotifyUrl,
+        youtube_url: youtubeUrl,
+        apple_url: isUpcoming ? null : releaseUrls.apple_url.trim() || null,
+        soundcloud_url: isUpcoming ? null : releaseUrls.soundcloud_url.trim() || null,
+        bandcamp_url: isUpcoming ? null : releaseUrls.bandcamp_url.trim() || null,
+        beatport_url: isUpcoming ? null : releaseUrls.beatport_url.trim() || null,
+        cover_url: resolvedCoverUrl,
+        is_upcoming: isUpcoming,
+      }
+
+      if (editingId) {
+        const { data, error } = await supabase
+          .from('releases')
+          .update(releaseFields)
+          .eq('profile_id', profile.id)
+          .eq('id', editingId)
+          .select('*')
+          .single()
+
+        if (error) throw error
+        setReleases((currentReleases) =>
+          sortReleases(currentReleases.map((release) => release.id === editingId ? data : release)),
+        )
+        alert('Release updated.')
+      } else {
+        const { error } = await supabase.from('releases').insert([
+          {
+            profile_id: profile.id,
+            ...releaseFields,
+            is_featured: false,
+          },
+        ])
+        if (error) throw error
+        alert('Release added.')
+        refreshAdminData()
+      }
+      resetReleaseForm()
     } catch (err) {
       console.error(err)
-      alert('Could not add release.')
+      alert(editingId ? 'Could not update release.' : 'Could not add release.')
     }
   }
 
@@ -535,10 +609,14 @@ export default function AdminPage() {
           }
           isUpcoming={isUpcoming}
           setIsUpcoming={setIsUpcoming}
+          coverUrl={coverUrl}
           setCoverUrl={setCoverUrl}
           releases={releases}
           customLinks={customLinks}
-          onSubmit={handleAddRelease}
+          editingId={editingId}
+          onSubmit={handleSaveRelease}
+          onEdit={handleEditRelease}
+          onCancelEdit={resetReleaseForm}
           onToggleActive={handleToggleReleaseActive}
           onToggleFeatured={handleToggleFeaturedRelease}
           onDelete={handleDeleteRelease}
