@@ -2,19 +2,9 @@
 
 import React from 'react'
 import { Database } from '@/types/supabase'
+import { isUrlFromDomains, SOCIAL_PLATFORMS, sortSocials } from '@/lib/platforms'
 
 type Social = Database['public']['Tables']['socials']['Row']
-
-const SOCIAL_PLATFORMS = [
-  { id: 'spotify', label: 'Spotify', placeholder: 'https://open.spotify.com/artist/...', domains: ['spotify.com'] },
-  { id: 'apple', label: 'Apple Music', placeholder: 'https://music.apple.com/artist/...', domains: ['apple.com'] },
-  { id: 'soundcloud', label: 'SoundCloud', placeholder: 'https://soundcloud.com/...', domains: ['soundcloud.com'] },
-  { id: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/...', domains: ['instagram.com'] },
-  { id: 'youtube', label: 'YouTube', placeholder: 'https://youtube.com/@...', domains: ['youtube.com', 'youtu.be'] },
-  { id: 'bandcamp', label: 'Bandcamp', placeholder: 'https://yourname.bandcamp.com', domains: ['bandcamp.com'] },
-  { id: 'beatport', label: 'Beatport', placeholder: 'https://www.beatport.com/artist/...', domains: ['beatport.com'] },
-  { id: 'tiktok', label: 'TikTok', placeholder: 'https://www.tiktok.com/@...', domains: ['tiktok.com'] },
-] as const
 
 interface SocialsManagerProps {
   platform: string
@@ -37,22 +27,24 @@ export function SocialsManager({
 }: SocialsManagerProps) {
   const currentPlatform =
     SOCIAL_PLATFORMS.find((p) => p.id === platform) ?? SOCIAL_PLATFORMS[0]
+  const supportedSocials = sortSocials(socials)
+  const sortedSocials = [
+    ...supportedSocials,
+    ...socials.filter(
+      (social) =>
+        !SOCIAL_PLATFORMS.some((item) => item.id === social.platform.trim().toLowerCase()),
+    ),
+  ]
+  const addedPlatforms = new Set(socials.map((social) => social.platform.trim().toLowerCase()))
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-
-    const validDomain = (value: string) => {
-      try {
-        const hostname = new URL(value).hostname.toLowerCase()
-        return currentPlatform.domains.some(
-          (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
-        )
-      } catch {
-        return false
-      }
+    if (addedPlatforms.has(platform)) {
+      alert(`${currentPlatform.label} has already been added.`)
+      return
     }
 
-    if (socialUrl && !validDomain(socialUrl)) {
+    if (socialUrl && !isUrlFromDomains(socialUrl, currentPlatform.domains)) {
       const expectedDomains = currentPlatform.domains.join(' or ')
       alert(`${currentPlatform.label} URL must belong to ${expectedDomains}.`)
       return
@@ -75,11 +67,14 @@ export function SocialsManager({
             onChange={(e) => setPlatform(e.target.value)}
             className="w-full bg-[#1a1b1f] border border-[#2a2d34] rounded px-3 py-2 text-white focus:outline-none focus:border-white"
           >
-            {SOCIAL_PLATFORMS.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
+            {SOCIAL_PLATFORMS.map((item) => {
+              const isAdded = addedPlatforms.has(item.id)
+              return (
+                <option key={item.id} value={item.id} disabled={isAdded}>
+                  {item.label}{isAdded ? ' (Added)' : ''}
+                </option>
+              )
+            })}
           </select>
         </div>
 
@@ -106,10 +101,10 @@ export function SocialsManager({
         <h2 className="text-xs text-[#a0a0a0] font-bold uppercase tracking-wider">
           Your social profiles
         </h2>
-        {socials.length === 0 ? (
+        {sortedSocials.length === 0 ? (
           <p className="text-xs text-[#666]">No social profiles added yet.</p>
         ) : (
-          socials.map((social) => {
+          sortedSocials.map((social) => {
             const matchedPlatform = SOCIAL_PLATFORMS.find((p) => p.id === social.platform)
             return (
               <div

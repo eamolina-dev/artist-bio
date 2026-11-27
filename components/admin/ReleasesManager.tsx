@@ -3,6 +3,14 @@
 import { useState } from 'react'
 import { uploadImage } from '@/lib/upload-image'
 import { Database } from '@/types/supabase'
+import {
+  EMPTY_RELEASE_URLS,
+  isUrlFromDomains,
+  normalizeUrl,
+  RELEASE_PLATFORMS,
+  ReleaseUrls,
+  ReleasePlatformField,
+} from '@/lib/platforms'
 
 export function ReleasesManager({
   releaseTitle,
@@ -13,12 +21,14 @@ export function ReleasesManager({
   // setReleaseYear,
   releaseDate,
   setReleaseDate,
-  spotifyUrl,
-  setSpotifyUrl,
-  appleUrl,
-  setAppleUrl,
+  releaseUrls,
+  setReleaseUrls,
+  setReleaseUrl,
+  isUpcoming,
+  setIsUpcoming,
   setCoverUrl,
   releases,
+  customLinks,
   onSubmit,
   onToggleActive,
   onToggleFeatured,
@@ -32,12 +42,14 @@ export function ReleasesManager({
   // setReleaseYear: (v: string) => void
   releaseDate: string
   setReleaseDate: (v: string) => void
-  spotifyUrl: string
-  setSpotifyUrl: (v: string) => void
-  appleUrl: string
-  setAppleUrl: (v: string) => void
+  releaseUrls: ReleaseUrls
+  setReleaseUrls: (v: ReleaseUrls) => void
+  setReleaseUrl: (field: ReleasePlatformField, value: string) => void
+  isUpcoming: boolean
+  setIsUpcoming: (v: boolean) => void
   setCoverUrl: (v: string) => void
   releases: Database['public']['Tables']['releases']['Row'][]
+  customLinks: Database['public']['Tables']['custom_links']['Row'][]
   onSubmit: (e: React.FormEvent) => void
   onToggleActive: (id: string, isActive: boolean) => Promise<void>
   onToggleFeatured: (id: string, isFeatured: boolean) => Promise<void>
@@ -47,6 +59,45 @@ export function ReleasesManager({
   const [updatingFeaturedId, setUpdatingFeaturedId] = useState<string | null>(null)
   const [updatingActiveId, setUpdatingActiveId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const urls = isUpcoming
+      ? []
+      : RELEASE_PLATFORMS
+          .map(({ field }) => ({ field, url: releaseUrls[field].trim() }))
+          .filter(({ url }) => url)
+
+    if (!isUpcoming && urls.length === 0) {
+      alert('Add at least one platform URL or mark this as an upcoming release.')
+      return
+    }
+
+    for (const { field, url } of urls) {
+      const platform = RELEASE_PLATFORMS.find((item) => item.field === field)
+      if (platform && !isUrlFromDomains(url, platform.domains)) {
+        alert(`${platform.label} URL must belong to ${platform.domains.join(' or ')}.`)
+        return
+      }
+    }
+
+    const existingUrls = [
+      ...customLinks.map((link) => link.url),
+      ...releases.flatMap((release) =>
+        RELEASE_PLATFORMS.map(({ field }) => release[field]),
+      ),
+    ].filter((url): url is string => Boolean(url))
+    const normalizedUrls = urls.map(({ url }) => normalizeUrl(url))
+    if (
+      new Set(normalizedUrls).size !== normalizedUrls.length ||
+      normalizedUrls.some((url) => existingUrls.some((existing) => normalizeUrl(existing) === url))
+    ) {
+      alert('This URL has already been added to your links or releases.')
+      return
+    }
+
+    onSubmit(e)
+  }
 
   async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -89,7 +140,7 @@ export function ReleasesManager({
   return (
     <div className="space-y-6 font-sans">
       {/* New release form */}
-      <form onSubmit={onSubmit} className="space-y-4 border border-[#2a2d34] p-5 rounded-lg bg-[#18191c]">
+      <form onSubmit={handleSubmit} className="space-y-4 border border-[#2a2d34] p-5 rounded-lg bg-[#18191c]">
         <h2 className="text-sm font-mono text-[#a0a0a0] mb-2">[ New release ]</h2>
 
         <div className="grid grid-cols-2 gap-4">
@@ -142,42 +193,37 @@ export function ReleasesManager({
           </div>
         </div>
 
-        {/* <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">COVER ART</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleCoverChange}
-              disabled={uploading}
-              className="text-xs text-[#a0a0a0] file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-mono file:bg-white file:text-black hover:file:bg-gray-200 cursor-pointer"
-            />
-            {uploading && <span className="text-xs text-yellow-400 font-mono">Uploading...</span>}
-          </div>
-        </div> */}
+        <label className="flex items-start gap-2 text-xs font-mono text-[#e2d9cc]">
+          <input
+            type="checkbox"
+            checked={isUpcoming}
+            onChange={(e) => {
+              setIsUpcoming(e.target.checked)
+              if (e.target.checked) setReleaseUrls(EMPTY_RELEASE_URLS)
+            }}
+            className="mt-0.5 accent-[#e2d9cc]"
+          />
+          <span>Upcoming release (Coming soon — no links required)</span>
+        </label>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">SPOTIFY URL</label>
-            <input
-              type="text"
-              placeholder="https://spotify.com/..."
-              value={spotifyUrl}
-              onChange={(e) => setSpotifyUrl(e.target.value)}
-              className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-white"
-            />
+        {!isUpcoming && (
+          <div className="grid grid-cols-2 gap-4">
+            {RELEASE_PLATFORMS.map((platform) => (
+              <div key={platform.field}>
+                <label className="block text-xs font-mono text-[#a0a0a0] mb-1">
+                  {platform.label.toUpperCase()} URL
+                </label>
+                <input
+                  type="url"
+                  placeholder={platform.placeholder}
+                  value={releaseUrls[platform.field]}
+                  onChange={(e) => setReleaseUrl(platform.field, e.target.value)}
+                  className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-white"
+                />
+              </div>
+            ))}
           </div>
-          <div>
-            <label className="block text-xs font-mono text-[#a0a0a0] mb-1">APPLE MUSIC URL</label>
-            <input
-              type="text"
-              placeholder="https://apple.com/..."
-              value={appleUrl}
-              onChange={(e) => setAppleUrl(e.target.value)}
-              className="w-full bg-[#121316] border border-[#2a2d34] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-white"
-            />
-          </div>
-        </div>
+        )}
 
         <button
           type="submit"
@@ -207,6 +253,28 @@ export function ReleasesManager({
                   )}
                 </p>
                 <p className="text-xs text-[#a0a0a0] uppercase font-mono">{rel.type}</p>
+                {rel.is_upcoming ? (
+                  <span className="mt-1 inline-block rounded border border-amber-200/20 px-1.5 py-0.5 text-[9px] font-mono text-amber-200/80">
+                    COMING SOON
+                  </span>
+                ) : (
+                  <div className="mt-1 flex flex-wrap gap-2 font-mono text-[10px]">
+                    {RELEASE_PLATFORMS.map(({ field, label }) => {
+                      const url = rel[field]
+                      return url ? (
+                        <a
+                          key={field}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#a0a0a0] underline-offset-2 hover:text-white hover:underline"
+                        >
+                          {label}
+                        </a>
+                      ) : null
+                    })}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">

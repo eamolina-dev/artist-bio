@@ -2,6 +2,7 @@
 
 import { ExternalLink, Disc3 } from 'lucide-react'
 import { Database } from '@/types/supabase'
+import { RELEASE_PLATFORMS } from '@/lib/platforms'
 
 type Release = Database['public']['Tables']['releases']['Row']
 
@@ -35,19 +36,9 @@ export function ReleasePlayer({ release }: ReleasePlayerProps) {
           <Disc3 className="size-3.5 text-[#e2d9cc]" />
           <span>Featured Release · {release.type} ({release.release_date || release.year})</span>
         </div>
-        {release.apple_url && (
-          <a
-            href={release.apple_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[11px] font-mono text-[#9299a1] hover:text-white transition"
-          >
-            Apple Music <ExternalLink className="size-3" />
-          </a>
-        )}
       </div>
 
-      {spotifyEmbed ? (
+      {spotifyEmbed && !release.is_upcoming ? (
         <iframe
           src={spotifyEmbed}
           width="100%"
@@ -58,7 +49,6 @@ export function ReleasePlayer({ release }: ReleasePlayerProps) {
           title={release.title}
         />
       ) : (
-        /* Fallback when no Spotify link is available */
         <div className="flex items-center gap-4">
           {release.cover_url ? (
             <img
@@ -71,20 +61,35 @@ export function ReleasePlayer({ release }: ReleasePlayerProps) {
               COVER
             </div>
           )}
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <h3 className="truncate font-medium text-[#e9e5df]">{release.title}</h3>
-            <p className="text-xs text-[#9299a1] capitalize">{release.type} · {release.release_date || release.year}</p>
+            <p className="text-xs text-[#9299a1] capitalize">
+              {release.type} · {release.release_date || release.year}
+            </p>
           </div>
-          {release.spotify_url && (
-            <a
-              href={release.spotify_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full bg-[#e2d9cc] px-4 py-2 text-xs font-medium text-[#121316] hover:bg-white transition"
-            >
-              Listen
-            </a>
+          {release.is_upcoming && (
+            <span className="shrink-0 rounded border border-amber-200/20 px-2 py-1 font-mono text-[9px] tracking-wide text-amber-200/80">
+              COMING SOON
+            </span>
           )}
+        </div>
+      )}
+      {!release.is_upcoming && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {RELEASE_PLATFORMS.map(({ field, label }) => {
+            const url = release[field]
+            return url ? (
+              <a
+                key={field}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1.5 text-[10px] font-mono text-[#e2d9cc] transition hover:border-[#e2d9cc]/60 hover:text-white"
+              >
+                {label} <ExternalLink className="size-3" />
+              </a>
+            ) : null
+          })}
         </div>
       )}
     </div>

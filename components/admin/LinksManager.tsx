@@ -2,8 +2,10 @@
 
 import React from 'react'
 import { Database } from '@/types/supabase'
+import { normalizeUrl } from '@/lib/platforms'
 
 type CustomLink = Database['public']['Tables']['custom_links']['Row']
+type Release = Database['public']['Tables']['releases']['Row']
 
 interface LinksManagerProps {
   linkTitle: string
@@ -11,6 +13,7 @@ interface LinksManagerProps {
   linkUrl: string
   setLinkUrl: (val: string) => void
   customLinks: CustomLink[]
+  releases: Release[]
   onSubmit: (e: React.FormEvent) => void
   onDelete: (id: string) => void
 }
@@ -21,12 +24,35 @@ export function LinksManager({
   linkUrl,
   setLinkUrl,
   customLinks,
+  releases,
   onSubmit,
   onDelete,
 }: LinksManagerProps) {
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const normalizedUrl = normalizeUrl(linkUrl)
+    const releaseUrls = releases.flatMap((release) => [
+      release.spotify_url,
+      release.youtube_url,
+      release.apple_url,
+      release.soundcloud_url,
+      release.bandcamp_url,
+      release.beatport_url,
+    ])
+    if (
+      [...customLinks.map((link) => link.url), ...releaseUrls]
+        .filter((url): url is string => Boolean(url))
+        .some((url) => normalizeUrl(url) === normalizedUrl)
+    ) {
+      alert('This URL has already been added to your links or releases.')
+      return
+    }
+    onSubmit(e)
+  }
+
   return (
     <div className="space-y-8 font-mono text-sm">
-      <form onSubmit={onSubmit} className="space-y-4 border-b border-[#2a2d34] pb-6">
+      <form onSubmit={handleSubmit} className="space-y-4 border-b border-[#2a2d34] pb-6">
         <h2 className="text-xs text-[#a0a0a0] font-bold uppercase tracking-wider mb-2">Add custom link</h2>
         <div>
           <label className="block text-xs text-[#a0a0a0] mb-1">Button label</label>

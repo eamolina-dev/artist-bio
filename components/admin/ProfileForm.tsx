@@ -22,11 +22,9 @@ function sanitizeSlug(value: string) {
 export function ProfileForm({
   profile,
   onSave,
-  onImageUpload,
 }: {
   profile: Profile
   onSave: (updatedFields: ProfileUpdate) => Promise<void>
-  onImageUpload: (field: 'avatar_url' | 'cover_url', url: string) => Promise<void>
 }) {
   const [name, setName] = useState(profile?.name || '')
   const [slug, setSlug] = useState(profile.slug)
@@ -34,6 +32,14 @@ export function ProfileForm({
   const [location, setLocation] = useState(profile?.location || '')
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '')
   const [coverUrl, setCoverUrl] = useState(profile?.cover_url || '')
+  const [savedValues, setSavedValues] = useState({
+    name: profile.name,
+    slug: profile.slug,
+    tagline: profile.tagline || '',
+    location: profile.location || '',
+    avatar_url: profile.avatar_url || '',
+    cover_url: profile.cover_url || '',
+  })
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
@@ -54,9 +60,8 @@ export function ProfileForm({
         return
       }
 
-      await onImageUpload('avatar_url', url)
       setAvatarUrl(url)
-      setAvatarFeedback('Avatar updated')
+      setAvatarFeedback('Avatar uploaded — save profile to apply')
       window.setTimeout(() => setAvatarFeedback(''), 2000)
     } catch (err) {
       console.error(err)
@@ -79,9 +84,8 @@ export function ProfileForm({
         return
       }
 
-      await onImageUpload('cover_url', url)
       setCoverUrl(url)
-      setCoverFeedback('Cover updated')
+      setCoverFeedback('Cover uploaded — save profile to apply')
       window.setTimeout(() => setCoverFeedback(''), 2000)
     } catch (err) {
       console.error(err)
@@ -121,16 +125,33 @@ export function ProfileForm({
       return
     }
 
-    await onSave({
+    const updatedFields = {
       name,
       slug: cleanSlug,
       tagline,
       location,
       avatar_url: avatarUrl,
       cover_url: coverUrl,
-    })
-    setSaving(false)
+    }
+
+    try {
+      await onSave(updatedFields)
+      setSavedValues(updatedFields)
+    } catch (err) {
+      console.error(err)
+      alert('Could not save changes.')
+    } finally {
+      setSaving(false)
+    }
   }
+
+  const hasUnsavedChanges =
+    name !== savedValues.name ||
+    sanitizeSlug(slug) !== savedValues.slug ||
+    tagline !== savedValues.tagline ||
+    location !== savedValues.location ||
+    avatarUrl !== savedValues.avatar_url ||
+    coverUrl !== savedValues.cover_url
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 font-sans">
@@ -223,13 +244,24 @@ export function ProfileForm({
         </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="w-full bg-white text-black font-mono text-xs font-bold py-2.5 rounded hover:bg-gray-200 transition cursor-pointer disabled:opacity-50"
-      >
-        {saving ? 'Saving...' : 'Save profile'}
-      </button>
+      <div className="space-y-2">
+        {hasUnsavedChanges && (
+          <p role="status" className="text-center text-xs font-mono text-amber-300">
+            Unsaved changes — click Save profile to apply
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={saving}
+          className={`w-full font-mono text-xs font-bold py-2.5 rounded transition cursor-pointer disabled:opacity-50 ${
+            hasUnsavedChanges
+              ? 'bg-amber-200 text-black ring-2 ring-amber-300/40 hover:bg-amber-100'
+              : 'bg-white text-black hover:bg-gray-200'
+          }`}
+        >
+          {saving ? 'Saving...' : 'Save profile'}
+        </button>
+      </div>
     </form>
   )
 }

@@ -10,6 +10,7 @@ import { ShowsList } from './shows-list'
 import { MerchCard } from './merch-card'
 import { CustomLinks } from './custom-links'
 import { sortReleases } from '@/lib/utils'
+import { RELEASE_PLATFORMS } from '@/lib/platforms'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 type Release = Database['public']['Tables']['releases']['Row']
@@ -182,28 +183,28 @@ export function ArtistBio({ slug }: ArtistBioProps) {
                               .join(' · ')}
                           </p>
                         </div>
-                        <div className="flex shrink-0 items-center gap-3 font-mono text-[10px]">
-                          {release.spotify_url && (
-                            <a
-                              href={release.spotify_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#e2d9cc] hover:text-white"
-                            >
-                              Spotify
-                            </a>
-                          )}
-                          {release.apple_url && (
-                            <a
-                              href={release.apple_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#e2d9cc] hover:text-white"
-                            >
-                              Apple Music
-                            </a>
-                          )}
-                        </div>
+                        {release.is_upcoming ? (
+                          <span className="shrink-0 rounded border border-amber-200/20 px-2 py-1 font-mono text-[9px] tracking-wide text-amber-200/80">
+                            COMING SOON
+                          </span>
+                        ) : (
+                          <div className="flex shrink-0 items-center gap-3 font-mono text-[10px]">
+                            {RELEASE_PLATFORMS.map(({ field, label }) => {
+                              const url = release[field]
+                              return url ? (
+                                <a
+                                  key={field}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[#e2d9cc] hover:text-white"
+                                >
+                                  {label}
+                                </a>
+                              ) : null
+                            })}
+                          </div>
+                        )}
                       </article>
                     ))}
                   </div>

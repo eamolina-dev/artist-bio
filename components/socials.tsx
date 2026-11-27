@@ -1,41 +1,35 @@
-import { Apple, Camera, Disc3, Music2, Video } from 'lucide-react'
+import { AtSign, Camera, MessageCircle, Users, Video } from 'lucide-react'
 import { Social } from '@/types/custom-types'
+import { sortSocials } from '@/lib/platforms'
 
-const iconMap: Record<string, typeof Music2> = {
-  spotify: Music2,
-  apple: Apple,
-  'apple music': Apple,
+const iconMap: Record<string, typeof Camera> = {
   youtube: Video,
   instagram: Camera,
-  soundcloud: Disc3,
-  bandcamp: Music2,
-  beatport: Disc3,
   tiktok: Video,
+  discord: MessageCircle,
+  x: AtSign,
+  facebook: Users,
 }
 
 const platformLabels: Record<string, string> = {
-  spotify: 'Spotify',
-  apple: 'Apple Music',
-  'apple music': 'Apple Music',
   youtube: 'YouTube',
   instagram: 'Instagram',
-  soundcloud: 'SoundCloud',
-  bandcamp: 'Bandcamp',
-  beatport: 'Beatport',
   tiktok: 'TikTok',
+  discord: 'Discord',
+  x: 'X',
+  facebook: 'Facebook',
 }
 
 export function Socials({ socials }: { socials: Social[] }) {
-  if (!socials || socials.length === 0) return null
+  const orderedSocials = sortSocials(socials || [])
+  if (orderedSocials.length === 0) return null
 
   return (
     <div className="mt-5 flex flex-wrap gap-2">
-      {socials.map((social) => {
+      {orderedSocials.map((social) => {
         const platform = social.platform.trim().toLowerCase()
-        const label =
-          platformLabels[platform] ||
-          platform.replace(/[-_]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
-        const IconComponent = iconMap[platform] || Music2
+        const label = platformLabels[platform]
+        const IconComponent = iconMap[platform] || Camera
 
         return (
           <a

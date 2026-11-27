@@ -9,15 +9,15 @@ import { LinksManager } from '@/components/admin/LinksManager'
 import { SocialsManager } from '@/components/admin/SocialsManager'
 import { useRouter } from 'next/navigation'
 import { sortReleases } from '@/lib/utils'
-
-function isUrlFromDomain(value: string, domain: string) {
-  try {
-    const hostname = new URL(value).hostname.toLowerCase()
-    return hostname === domain || hostname.endsWith(`.${domain}`)
-  } catch {
-    return false
-  }
-}
+import {
+  EMPTY_RELEASE_URLS,
+  isUrlFromDomains,
+  normalizeUrl,
+  RELEASE_PLATFORMS,
+  SOCIAL_PLATFORMS,
+  type ReleaseUrls,
+  type ReleasePlatformField,
+} from '@/lib/platforms'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'releases' | 'links' | 'socials'>('profile')
@@ -32,9 +32,9 @@ export default function AdminPage() {
   const [releaseType, setReleaseType] = useState('single')
   // const [releaseYear, setReleaseYear] = useState('2026')
   const [releaseDate, setReleaseDate] = useState('')
-  const [spotifyUrl, setSpotifyUrl] = useState('')
-  const [appleUrl, setAppleUrl] = useState('')
+  const [releaseUrls, setReleaseUrls] = useState<ReleaseUrls>(EMPTY_RELEASE_URLS)
   const [coverUrl, setCoverUrl] = useState('')
+  const [isUpcoming, setIsUpcoming] = useState(false)
   const [releases, setReleases] = useState<Database['public']['Tables']['releases']['Row'][]>([])
 
   // Estados Links
@@ -43,7 +43,7 @@ export default function AdminPage() {
   const [customLinks, setCustomLinks] = useState<Database['public']['Tables']['custom_links']['Row'][]>([])
 
   // Estados Socials
-  const [platform, setPlatform] = useState('spotify')
+  const [platform, setPlatform] = useState('instagram')
   const [socialUrl, setSocialUrl] = useState('')
   const [socials, setSocials] = useState<Database['public']['Tables']['socials']['Row'][]>([])
 
@@ -100,24 +100,22 @@ export default function AdminPage() {
     }
   }, [loadAdminData, userId])
 
-  async function handleProfileImageUpload(field: 'avatar_url' | 'cover_url', url: string) {
-    if (!profile) throw new Error('Profile is not available.')
+  async function hasDuplicateProfileUrl(urls: string[]) {
+    if (!profile || urls.length === 0) return false
 
-    const updatedImage: Pick<Database['public']['Tables']['profiles']['Update'], 'avatar_url' | 'cover_url'> =
-      field === 'avatar_url' ? { avatar_url: url } : { cover_url: url }
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updatedImage)
-      .eq('id', profile.id)
-      .select('id')
-      .maybeSingle()
+    const { data: profileLinks, error } = await supabase
+      .from('custom_links')
+      .select('url')
+      .eq('profile_id', profile.id)
 
     if (error) throw error
-    if (!data) throw new Error('Profile image was not saved.')
 
-    setProfile((currentProfile) =>
-      currentProfile ? { ...currentProfile, [field]: url } : currentProfile,
-    )
+    const existingUrls = [
+      ...profileLinks.map((link) => link.url),
+      ...releases.flatMap((release) => RELEASE_PLATFORMS.map(({ field }) => release[field])),
+    ].filter((url): url is string => Boolean(url))
+    const normalizedExistingUrls = new Set(existingUrls.map(normalizeUrl))
+    return urls.some((url) => normalizedExistingUrls.has(normalizeUrl(url)))
   }
 
   useEffect(() => {
@@ -172,38 +170,61 @@ export default function AdminPage() {
   async function handleAddRelease(e: React.FormEvent) {
     e.preventDefault()
     if (!profile) return
-    if (!releaseTitle) return alert('A release title is required.')
+    if (!releaseTitle.trim()) return alert('A release title is required.')
     if (!releaseDate) return alert('Release date is required.')
 
-    if (spotifyUrl && !isUrlFromDomain(spotifyUrl, 'spotify.com')) {
-      return alert('Spotify URL must belong to spotify.com.')
+    const urls = isUpcoming
+      ? []
+      : RELEASE_PLATFORMS
+          .map(({ field }) => ({ field, url: releaseUrls[field].trim() }))
+          .filter(({ url }) => url)
+
+    if (!isUpcoming && urls.length === 0) {
+      return alert('Add at least one platform URL or mark this as an upcoming release.')
     }
 
-    if (appleUrl && !isUrlFromDomain(appleUrl, 'apple.com')) {
-      return alert('Apple Music URL must belong to apple.com.')
+    for (const { field, url } of urls) {
+      const releasePlatform = RELEASE_PLATFORMS.find((item) => item.field === field)
+      if (releasePlatform && !isUrlFromDomains(url, releasePlatform.domains)) {
+        return alert(`${releasePlatform.label} URL must belong to ${releasePlatform.domains.join(' or ')}.`)
+      }
+    }
+
+    const normalizedUrls = urls.map(({ url }) => normalizeUrl(url))
+    if (new Set(normalizedUrls).size !== normalizedUrls.length) {
+      return alert('This URL has already been added to your links or releases.')
     }
 
     try {
+      if (await hasDuplicateProfileUrl(urls.map(({ url }) => url))) {
+        return alert('This URL has already been added to your links or releases.')
+      }
+
       const { error } = await supabase.from('releases').insert([
         {
           profile_id: profile.id,
-          title: releaseTitle,
+          title: releaseTitle.trim(),
           type: releaseType,
           year: releaseDate.slice(0, 4),
           release_date: releaseDate,
-          spotify_url: spotifyUrl,
-          apple_url: appleUrl,
+          spotify_url: isUpcoming ? null : releaseUrls.spotify_url.trim() || null,
+          youtube_url: isUpcoming ? null : releaseUrls.youtube_url.trim() || null,
+          apple_url: isUpcoming ? null : releaseUrls.apple_url.trim() || null,
+          soundcloud_url: isUpcoming ? null : releaseUrls.soundcloud_url.trim() || null,
+          bandcamp_url: isUpcoming ? null : releaseUrls.bandcamp_url.trim() || null,
+          beatport_url: isUpcoming ? null : releaseUrls.beatport_url.trim() || null,
           cover_url: coverUrl,
           is_featured: false,
+          is_upcoming: isUpcoming,
         },
       ])
       if (error) throw error
       alert('Release added.')
       setReleaseTitle('')
       setReleaseDate('')
-      setSpotifyUrl('')
-      setAppleUrl('')
+      setReleaseUrls(EMPTY_RELEASE_URLS)
       setCoverUrl('')
+      setIsUpcoming(false)
       refreshAdminData()
     } catch (err) {
       console.error(err)
@@ -298,14 +319,17 @@ export default function AdminPage() {
   async function handleAddLink(e: React.FormEvent) {
     e.preventDefault()
     if (!profile) return
-    if (!linkTitle || !linkUrl) return alert('A title and URL are required.')
-
+    if (!linkTitle.trim() || !linkUrl.trim()) return alert('A title and URL are required.')
     try {
+      if (await hasDuplicateProfileUrl([linkUrl])) {
+        return alert('This URL has already been added to your links or releases.')
+      }
+
       const { error } = await supabase.from('custom_links').insert([
         {
           profile_id: profile.id,
-          label: linkTitle,
-          url: linkUrl,
+          label: linkTitle.trim(),
+          url: linkUrl.trim(),
         },
       ])
       if (error) throw error
@@ -339,14 +363,21 @@ export default function AdminPage() {
   async function handleAddSocial(e: React.FormEvent) {
     e.preventDefault()
     if (!profile) return
-    if (!socialUrl) return alert('A social profile URL is required.')
+    if (!socialUrl.trim()) return alert('A social profile URL is required.')
+    if (socials.some((social) => social.platform.trim().toLowerCase() === platform)) {
+      return alert('This social platform has already been added.')
+    }
+    const socialPlatform = SOCIAL_PLATFORMS.find((item) => item.id === platform)
+    if (!socialPlatform || !isUrlFromDomains(socialUrl, socialPlatform.domains)) {
+      return alert(`Enter a valid ${socialPlatform?.label ?? 'social'} profile URL.`)
+    }
 
     try {
       const { error } = await supabase.from('socials').insert([
         {
           profile_id: profile.id,
           platform: platform,
-          url: socialUrl,
+          url: socialUrl.trim(),
           order_index: socials.length + 1,
         },
       ])
@@ -471,22 +502,18 @@ export default function AdminPage() {
         <ProfileForm
           key={profile.id}
           profile={profile}
-          onImageUpload={handleProfileImageUpload}
           onSave={async (updatedFields) => {
             if (!profile) return
 
-            try {
-              const { error } = await supabase
-                .from('profiles')
-                .update(updatedFields)
-                .eq('id', profile.id)
-              if (error) throw error
-              alert('Profile updated.')
-              refreshAdminData()
-            } catch (err) {
-              console.error(err)
-              alert('Could not save changes.')
-            }
+            const { data, error } = await supabase
+              .from('profiles')
+              .update(updatedFields)
+              .eq('id', profile.id)
+              .select('*')
+              .single()
+            if (error) throw error
+            setProfile(data)
+            alert('Profile updated.')
           }}
         />
       )}
@@ -501,12 +528,16 @@ export default function AdminPage() {
           // setReleaseYear={setReleaseYear}
           releaseDate={releaseDate}
           setReleaseDate={setReleaseDate}
-          spotifyUrl={spotifyUrl}
-          setSpotifyUrl={setSpotifyUrl}
-          appleUrl={appleUrl}
-          setAppleUrl={setAppleUrl}
+          releaseUrls={releaseUrls}
+          setReleaseUrls={setReleaseUrls}
+          setReleaseUrl={(field: ReleasePlatformField, value) =>
+            setReleaseUrls((currentUrls) => ({ ...currentUrls, [field]: value }))
+          }
+          isUpcoming={isUpcoming}
+          setIsUpcoming={setIsUpcoming}
           setCoverUrl={setCoverUrl}
           releases={releases}
+          customLinks={customLinks}
           onSubmit={handleAddRelease}
           onToggleActive={handleToggleReleaseActive}
           onToggleFeatured={handleToggleFeaturedRelease}
@@ -521,6 +552,7 @@ export default function AdminPage() {
           linkUrl={linkUrl}
           setLinkUrl={setLinkUrl}
           customLinks={customLinks}
+          releases={releases}
           onSubmit={handleAddLink}
           onDelete={handleDeleteLink}
         />
